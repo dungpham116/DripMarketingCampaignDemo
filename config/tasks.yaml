@@ -1,0 +1,23 @@
+write_email_task:
+  description: >
+    Draft an email to reply to {sender_name}. Use this conversation history as a context : 
+    {conversation_history}. Here is the email for which you have to generate reply to: 
+    {client_mail}. Here is the description about organization of sender: {company_desc}
+    While generating reply YOU MUST FOLLOW these instructions:
+    - Try to reply in a way the user replied in his past emails
+    - Don't repeat anything which client said and add everything in this reply only, don't 
+    postpone anything to next email.
+    - Make the reply short and easy to understand without adding any unnecessary information
+    - At the end of email body, take something from sender's organization description which 
+    the user might like if he was replying to this email and add it before last line of email 
+    as a 10-15 words sentence which starts with " PS, I just checked your website and i loved "
+  expected_output: >
+    A consise, personalized reply to the sender that acknowledges their response, references 
+    their specific reply, provides value and suggest them the next steps. Make sure to mimic 
+    the user's tone and style as close as possible, and end the reply with a polite Call-To-Action.
+
+placeholder:
+  description: >
+    None
+  expected_output: >
+    None

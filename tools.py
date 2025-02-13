@@ -1,3 +1,4 @@
+import os
 from crewai.tools.structured_tool import CrewStructuredTool
 from pydantic import BaseModel
 import requests
@@ -71,7 +72,7 @@ def create_company_search_tool():
 # CompanySearchTool = create_company_search_tool()
 
 # result = CompanySearchTool._run(**{
-#     "Apollo_API_KEY": "################",
+#     "Apollo_API_KEY": os.getenv('APOLLO_API_KEY'),
 #     "email":  'someone@apollo.ai'
 # })
 # print(result)  
