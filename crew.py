@@ -2,7 +2,6 @@
 from crewai import Agent, Task, Crew, Process, LLM
 from crewai.project import CrewBase, agent, crew, task
 from crewai.knowledge.source.csv_knowledge_source import CSVKnowledgeSource
-from tools import company_search_tool
 import yaml
 import os
 
