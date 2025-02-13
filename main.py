@@ -6,6 +6,6 @@ def run():
             'client_mail': 'abc@gmail.com', # Mail to which have to reply
             'conversation_history': '', # Fetch from smartlead API, need more preprocessing
             'sender_name': 'abc',
-            'company_decs': 'None', # From company search tool
+            'company_desc': 'None', # From company search tool
             }
         )

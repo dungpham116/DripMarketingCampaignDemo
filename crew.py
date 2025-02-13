@@ -34,7 +34,7 @@ writer_agent = Agent(
 write_email_task = Task(
     description = tasks_config['write_email_task']['description'],
     expected_output = tasks_config['write_email_task']['expected_output'],
-    agent=agent,
+    agent=writer_agent,
 )
 
 email_writing_agent = Crew(
