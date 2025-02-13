@@ -7,7 +7,6 @@ current_datetime = datetime.utcnow()
 
 # Email Sender Tool
 class EmailSenderToolInput(BaseModel):
-    SmartLead_API_KEY: str
     campaign_id: int
     email_stats_id: int
     email_body: str
@@ -17,6 +16,7 @@ class EmailSenderToolInput(BaseModel):
 
 # Wrapper function to execute the API call
 def email_sender_wrapper(*args, **kwargs):
+    SmartLead_API_KEY = os.getenv("SMARTLEAD_API_KEY")
     url = f"https://server.smartlead.ai/api/v1/campaigns/{kwargs['campaign_id']}/reply-email-thread?api_key={kwargs['SmartLead_API_KEY']}"
     data = {
       "email_stats_id": {kwargs['email_stats_id']},
@@ -45,12 +45,11 @@ def create_email_sender_tool():
 # Company Search Tool
 class CompanySearchToolInput(BaseModel):
     email: str
-    Apollo_API_KEY: str
 
 # Wrapper function to execute the API call
 def company_search_wrapper(*args, **kwargs):
     data = {
-            "api_key":{kwargs['Apollo_API_KEY']},
+            "api_key":os.getenv("Apollo_API_KEY"),
             "email":{kwargs['email']}
         }
     try:
@@ -72,7 +71,6 @@ def create_company_search_tool():
 # CompanySearchTool = create_company_search_tool()
 
 # result = CompanySearchTool._run(**{
-#     "Apollo_API_KEY": os.getenv('APOLLO_API_KEY'),
 #     "email":  'someone@apollo.ai'
 # })
 # print(result)  
