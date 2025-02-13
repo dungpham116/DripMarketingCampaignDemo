@@ -1,8 +1,56 @@
 from crewai.tools.structured_tool import CrewStructuredTool
+from crewai import Agent, Crew, Process
 from pydantic import BaseModel
+from typing import Type, List
 import requests
 from datetime import datetime
+import openai
 current_datetime = datetime.utcnow()
+
+#Email categorization tool
+class CategorizeEmailInput(BaseModel):
+    conversation: str = Field(description="Email conversation array")
+
+class CategorizeEmailTool(BaseTool):
+		# Provide proper name and description for your tool
+    name = "email_categorizer_tool"
+    description = "use this tool when have email conversation history and you want to categorize this email"
+    args_schema: Type[BaseModel] = CategorizeEmailInput
+
+    def _run(self, conversation: str):
+      prompt = f"""
+        Email Conversation History:
+        ---
+        {conversation}
+        ---
+        You have given an array of conversation between Rohan Sawant and a client
+        Your goal is to categorize this email based on the conversation history from the given categories:
+
+        1. Meeting_Ready_Lead: they have shown positive intent and are interested in getting on a call
+        2. Power: If they’re interested and we want to push for a call
+        3. Question: If they have any question regarding anything
+        4. Unsubscribe: They want to unsubscribe themselves from our email list
+        5. OOO: They are out of office
+        6. No_Longer_Works: They no longer works in the company
+        7. Not_Interested: They are not interested
+        8. Info: these are emails that don't fit into any of the above categories.
+
+        Note: Your final response MUST BE the category name ONLY
+
+        RESPONSE:
+      """
+      message = openai.chat.completions.create(
+          model="gpt-4",
+          messages=[
+              {"role": "user", "content": prompt}
+          ]
+      )
+      category = message.choices[0].message.content
+      return category
+
+    def _arun(self, url: str):
+        raise NotImplementedError(
+            "categorise_email does not support async")
 
 # Email Sender Tool
 class EmailSenderToolInput(BaseModel):
