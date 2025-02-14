@@ -1,0 +1,70 @@
+{
+  "lead_list": [
+    {
+      "first_name": "Trang",
+      "last_name": "Minh",
+      "email": "trang.pham@jesselton.capital",
+      "phone_number": "--",
+      "company_name": "JC",
+      "website": "--",
+      "location": "",
+      "linkedin_profile": "",
+      "company_url": ""
+    },
+    {
+      "first_name": "Son",
+      "last_name": "Nguyen",
+      "email": "son.nguyen@jesselton.capital",
+      "phone_number": "--",
+      "company_name": "JC",
+      "website": "--",
+      "location": "",
+      "linkedin_profile": "",
+      "company_url": ""
+    },
+    {
+      "first_name": "Nhat 2",
+      "last_name": "Tran",
+      "email": "tranminhnhat7019@gmail.com",
+      "phone_number": "--",
+      "company_name": "TMN",
+      "website": "--",
+      "location": "",
+      "linkedin_profile": "",
+      "company_url": ""
+    },
+    {
+      "first_name": "Nhat",
+      "last_name": "Tran",
+      "email": "nhat.tran@jesselton.capital",
+      "phone_number": "--",
+      "company_name": "JC",
+      "website": "--",
+      "location": "",
+      "linkedin_profile": "",
+      "company_url": ""
+    },
+    {
+      "first_name": "Dung",
+      "last_name": "Pham",
+      "email": "dung.pham@jesselton.capital",
+      "phone_number": "--",
+      "company_name": "JC",
+      "website": "--",
+      "location": "",
+      "linkedin_profile": "",
+      "company_url": ""
+    },
+    {
+      "first_name": "Vu",
+      "last_name": "Nguyen",
+      "email": "minh.nguyen@jesselton.capital",
+      "phone_number": "--",
+      "company_name": "JC",
+      "website": "--",
+      "location": "",
+      "linkedin_profile": "",
+      "company_url": ""
+    }
+  ]
+}

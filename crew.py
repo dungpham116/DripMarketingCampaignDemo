@@ -4,12 +4,13 @@ from crewai.project import CrewBase, agent, crew, task
 from crewai.knowledge.source.csv_knowledge_source import CSVKnowledgeSource
 import yaml
 import os
-
+from dotenv import load_dotenv
+load_dotenv('example.env')
 # Knowledge base
 FAQ = './a.csv' # Path to FAQ csv file
 message_history = './b.csv' # Path to message-reply history
 csv_source = CSVKnowledgeSource(
-    file_paths = [FAQ,message_history]
+    file_paths = [FAQ, message_history]
 )
 llm = LLM(model="gpt-4o-mini", temperature=0)
 
@@ -21,6 +22,7 @@ with open('config/agents.yaml', 'r') as file:
 
 with open('config/tasks.yaml', 'r') as file:
     tasks_config = yaml.safe_load(file)
+
 
 # Create an agent with the knowledge store
 writer_agent = Agent(
@@ -42,5 +44,6 @@ email_writing_agent = Crew(
     tasks=[write_email_task],
     verbose=True,
     process=Process.sequential,
-    knowledge_sources=[csv_source], # Enable knowledge by adding the sources here. You can also add more sources to the sources list.
+    knowledge_sources=[csv_source],
+    # Enable knowledge by adding the sources here. You can also add more sources to the sources list.
 )

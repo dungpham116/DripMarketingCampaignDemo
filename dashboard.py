@@ -7,15 +7,17 @@ import pandas as pd
 import random
 import datetime
 import requests
+import json
 import csv
+from pprint import pprint
 import io
 import pandas as pd
 from dotenv import load_dotenv
-
+from crew import email_writing_agent
 # --- App Configuration ---
 APP_NAME = "Main Dashboard"
 DATABASE_FILE = "user_database.pkl" # File to store the user database
-load_dotenv('config.env')  
+load_dotenv('example.env')  
 secret = os.getenv('SMARTLEAD_API_KEY')
 # --- Database: File-based (Persistent) ---
 # This stores the user database in a file using pickle.  Better than in-memory,
@@ -154,18 +156,144 @@ def trigger_webhook():
     json = status.json()
     return json
 
+def transform_delay_field(data):
+    """
+    Recursively transforms 'delayInDays' to 'delay_in_days' in a dictionary
+    
+    Args:
+        data: Dictionary or list containing the field to transform
+        
+    Returns:
+        Transformed data structure
+    """
+    if isinstance(data, dict):
+        new_dict = {}
+        for key, value in data.items():
+            # Transform the specific key
+            if key == 'delayInDays':
+                new_key = 'delay_in_days'
+            else:
+                new_key = key
+                
+            # Recursively transform nested structures
+            if isinstance(value, (dict, list)):
+                new_dict[new_key] = transform_delay_field(value)
+            else:
+                new_dict[new_key] = value
+        return new_dict
+    
+    elif isinstance(data, list):
+        return [transform_delay_field(item) for item in data]
+    
+    return data
+def add_sequence(campaign_id):
+    sequences = requests.get(f"https://server.smartlead.ai/api/v1/campaigns/{campaign_id}/sequences?api_key={secret}")
+    sequences = sequences.json()
+    #pprint(sequences)
+    sequences = transform_delay_field(sequences)
+    #last_sequence = sequences[-1]
+    
+
+    # cold_email = email_writing_agent.kickoff(
+    #             inputs = {
+    #                 'client_mail': row['email'], # Mail to which have to reply
+    #                 'conversation_history': '', # Fetch from smartlead API, need more preprocessing
+    #                 'sender_name': row['first_name'],
+    #                 'company_desc': 'None', # From company search tool
+    #                 }
+    #             ) 
+    data = {
+       "id": 1,
+       "seq_number": 1,
+       "seq_delay_details":{
+           "delay_in_days": 1
+       },
+       "subject": "Test add sequence by AI",
+       "email_body": """
+            Hi {{first_name}},
+            I'm Jason, Executive at Hyred, and I'm reaching out to see if you're looking to build a top-tier team in Southeast Asia or Hong Kong. Recruitment here comes with unique challenges—but we make it seamless.
+
+            For 18 years, we've been helping companies like yours not just fill roles, but find the perfect fit—people who align with your vision, culture, and goals.
+
+            Here's how we make hiring easier for you:
+            ✔️ Local expertise - We know these markets inside out.
+            ✔️ Tailored approach - We adapt to your hiring needs.
+            ✔️ Culture-first mindset - Skills matter, but fit is everything.
+
+            Would you be open to a quick chat to share with us your hiring challenges and explore how we can help you build a talented team?
+
+            Book a 15-min Quick Call
+
+            Looking forward to connecting!
+            Best,
+
+            Jason
+            Hyred Recruitment Team
+            +84 415915232""",
+        }
+    b = [{
+        "id": 8494,
+        "seq_number": 1,
+        "seq_delay_details": {
+            "delay_in_days": 1
+        },
+        "variant_distribution_type": "MANUAL_EQUAL", # ENUM MANUAL_EQUAL, MANUAL_PERCENTAGE, AI_EQUAL
+        "lead_distribution_percentage": 40, # What sample % size of the lead pool to use to find the winner
+        "winning_metric_property": "OPEN_RATE", # ENUM: OPEN_RATE, CLICK_RATE, REPLY_RATE,POSITIVE_REPLY_RATE
+        "seq_variants": [
+            {
+            "subject": "Subject",
+            "email_body": "<p>Hi<br><br>How are you?<br><br>Hope you're doing good</p>",
+            "variant_label": "A",
+            "id": 2535, # don't pass the ID key value pair when creating only pass for updating,
+            "variant_distribution_percentage": 20
+            },
+            {
+            "subject": "Ema a",
+            "email_body": "<p>This is a new game a</p>",
+            "variant_label": "B",
+            "id": 2536, # don't pass the ID key value pair when creating only pass for updating,
+            "variant_distribution_percentage": 60
+            },
+            {
+            "subject": "C emsil",
+            "email_body": "<p>Hiii C</p>",
+            "variant_label": "C",
+            "id": 2537, # don't pass the ID key value pair when creating only pass for updating,
+            "variant_distribution_percentage": 20
+            }
+        ]
+    },
+    {
+        "id": 8495,
+        "seq_number": 2,
+        "seq_delay_details": {
+            "delay_in_days": 1
+        },
+        "subject": "", # blank makes the follow up in the same thread
+        "email_body": "<p>Bump up right!</p>"
+    }]
+    st.markdown(data)
+    sequences.append(data)
+    for i in sequences:
+        print("-----------------")
+        print(i)
+    a = {"sequences": data}
+    st.markdown(sequences)
+    st.markdown(a['sequences'])
+    sequence_added = requests.post(f"https://server.smartlead.ai/api/v1/campaigns/{campaign_id}/sequences?api_key={secret}", data=json.dumps({"sequences": b}), headers={'Content-Type': 'application/json'})
+    print(sequence_added.json())
+
 def show_drip_marketing_campaign_dashboard():
     """Displays the dashboard with Drip Marketing Data."""
     st.header("Drip Marketing Campaign Dashboard")
     # --- Mock Data ---
     # --- Get Campaigns ---
-    res = trigger_webhook()
-    st.write(res)
     campaigns = get_campaigns()
     campaign_names = None 
     df = pd.DataFrame()
     for campaign in campaigns:
-        
+        print(campaign['id'])
         data = generate_mock_data(campaign['id'])
         data['Campaign'] = campaign['name']
         df = pd.concat([df, data])
@@ -199,7 +327,27 @@ def show_drip_marketing_campaign_dashboard():
     st.dataframe(filtered_df, use_container_width=True) # This makes the DF fill the column width
     st.caption("Mock data generated for demonstration purposes only.")
 
-
+    # --- AI Agent ---
+    st.subheader("Email Writing Agent")
+    st.write("This is where the email writing agent would be.")
+    # Add your email writing agent UI elements here
+    if st.button("Add sequence"):
+        response = requests.get(f"https://server.smartlead.ai/api/v1/campaigns/1485611/sequences?api_key={secret}")
+        seq = add_sequence(1485611)
+        st.markdown(response.json())
+    if st.button("Email Writing Agent"):
+        for i, row in filtered_df.iterrows():
+            response = email_writing_agent.kickoff(
+                inputs = {
+                    'client_mail': row['email'], # Mail to which have to reply
+                    'conversation_history': '', # Fetch from smartlead API, need more preprocessing
+                    'sender_name': row['first_name'],
+                    'company_desc': 'None', # From company search tool
+                    }
+                )
+            print(response)
+            st.markdown(response)
+    
     if st.button("Logout"):
         clear_session_state()
         st.rerun()
