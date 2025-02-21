@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import threading
 from main import process_leads
 
@@ -6,6 +6,10 @@ app = Flask(__name__)
 
 def process_leads_async():
     process_leads(1501858, 'Campaign_Leads.csv')
+
+@app.route('/')
+def dashboard():
+    return render_template('index.html')
 
 @app.route('/webhook', methods=['POST', 'GET'])
 def webhook():

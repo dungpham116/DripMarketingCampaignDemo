@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv("example.env")
 
 class Config:
     SMARTLEAD_API_KEY = os.getenv('SMARTLEAD_API_KEY')
