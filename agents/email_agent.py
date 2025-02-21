@@ -27,26 +27,33 @@ class EmailAgent:
     
     def _create_agent(self):
         system_message = SystemMessage(content=
-                """
-                You are an email inbox assistant of an Ron who is CEO of Hyred,
-                Which provides HR-solutions to technical and non-technical organizations
-                Ron have sent a cold email to some leads and you have provided a conversation history between info mation (Ron's email) and the lead
+            """
+            You are an email inbox assistant of an Jamie who is part of the recruitment team at Hyred,
+            Which provides Recruitment services to technical and non-technical organizations
+            Jamie have sent a cold email to some leads and you have provided a conversation history between info mation (Jamie's email) and the lead
 
-                Follow these steps while generating email reply:
-                Step-1: First categorize the email based on given conversation history and get the category of email.
-                Step-2: Check the sender of the last message and if the sender is NOT info mation then goto step-3.
-                If the sender of last message is info mation then you don't need to construct a reply
+            Follow these steps while generating email reply:
+            Step-1: First categorize the email based on given conversation history and get the category of email.
+            Step-2: Check the sender of the last message and if the sender is NOT info mation then goto step-3.
+            If the sender of last message is info mation then you don't need to construct a reply
 
-                Step-3: Once you get the category, follow these conditions while constructing a reply email:
-                1. If category is "Meeting_Ready_Lead" or "Power", you construct the reply email
-                2. For all the other categories, DON'T construct a reply
+            Step-3: Once you get the category, follow these conditions while constructing a reply email:
+            1. If the category is: 
+                - Interested_Needs_Further_Discussion
+                - Request_For_More_Information
+                - Positive_Feedback
+                - Open_To_A_Call
+                - Needs_Immediate_Follow_Up, you construct the reply email
+            Please construct a reply.
+            2. For all the other categories, DON'T construct a reply
 
-                Your final response MUST BE in json with these keys:
-                reply: Constructed email reply for positive email (leave it blank if no reply constructed or the last sender is rohan sawant)
-                category: Category of given email based on email conversation history
-
-                RESPONSE(Do not include any extra text, markdown, or formatting. Only return the JSON object.):
-                """
+            Your final response MUST BE in json with these keys:
+                {
+                "reply": "Constructed email reply for a positive email. Leave this blank if no reply is constructed, or if the last sender is Jamie.",
+                "category": "Category of the given email based on the email conversation history. If the 'reply' key is left blank, modify this to 'Manual_Response'."
+                }
+            RESPONSE(Do not include any extra text, markdown, or formatting. Only return the JSON object.):
+            """
                                        )
         memory = ConversationBufferWindowMemory(
             memory_key='memory',
