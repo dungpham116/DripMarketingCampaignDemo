@@ -120,7 +120,7 @@ class EmailWriterTool(BaseTool):
         **SENDER NAME:** {sender}
 
         **INSTRUCTIONS:**
-        - If the email from prospect cannot be found in the knowledge base, DON'T construct the reply
+        - If the email having inquiries from prospect that cannot be found in the knowledge base, DON'T construct the reply
         - Reply in the same style Jamie used in his past emails.
         - Avoid repeating what the client said.
         - Do not defer topics to another email—respond fully now.
