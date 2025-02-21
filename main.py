@@ -6,6 +6,8 @@ from tools.api_tools import SmartLeadAPIClient
 from utils.email_formating import EmailProcessor
 from config import Config
 
+manual_response_emails = [] 
+
 def process_leads(campaign_id, csv_path):
     api_client = SmartLeadAPIClient()
     email_agent = EmailAgent()
@@ -38,6 +40,10 @@ def process_leads(campaign_id, csv_path):
             # print(type(email_agent))
             response = email_agent({"input": prompt})
             response = json.loads(response["output"])
+            category = response.get("category", "")
+        
+            if category == "Manual_Response": # Record the prospect that needs manual response
+                manual_response_emails.append(row[2])  # Store email if category matches
             history = message_history[len(message_history)-1]
             print('Finished processing lead')
             # If there is reply which needs to be send then use email sender tool to send email
