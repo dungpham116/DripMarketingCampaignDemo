@@ -1,7 +1,7 @@
-crewai
 openai
 langchain
 langchain_community
 langchain_openai
-tiktoken
 html2text
+requests
+dotenv
