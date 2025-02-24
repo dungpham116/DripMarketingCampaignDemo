@@ -7,7 +7,7 @@ app = Flask(__name__)
 def process_leads_async(campaign_id, lead_email, lead_name):
     process_leads(campaign_id, lead_email, lead_name)
 
-@app.route('/webhook', methods=['POST', 'GET'])
+@app.route('/', methods=['POST', 'GET'])
 def webhook():
     if request.method == 'POST':
         data = request.json  # Extract JSON payload
