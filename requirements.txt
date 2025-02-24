@@ -5,3 +5,4 @@ langchain_openai
 html2text
 requests
 dotenv
+flask
