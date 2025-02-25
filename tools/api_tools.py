@@ -40,4 +40,37 @@ class SmartLeadAPIClient:
         except requests.exceptions.RequestException as e:
             print(f"An error occurred: {e}")
             return None
+        
+    def get_lead_message_history(self,lead_email, _campaign_id):
+        try:
+            # Get lead ID
+            response = requests.get(
+                f"https://server.smartlead.ai/api/v1/leads/?api_key={Config.SMARTLEAD_API_KEY}&email={lead_email}"
+            )
+            response.raise_for_status()
+            lead_info = response.json()
+            
+            if not lead_info or 'id' not in lead_info:
+                raise ValueError("Lead ID not found in response")
+            
+            lead_id = lead_info['id']
+            
+            # Get conversation history of lead
+            response = requests.get(
+                f"https://server.smartlead.ai/api/v1/campaigns/{_campaign_id}/leads/{lead_id}/message-history?api_key={Config.SMARTLEAD_API_KEY}"
+            )
+            response.raise_for_status()
+            message_history = response.json()
+            
+            if 'history' not in message_history:
+                raise ValueError("Message history not found in response")
+            
+            return message_history["history"]
+        
+        except requests.exceptions.RequestException as e:
+            print(f"API request error: {e}")
+            return None
+        except ValueError as e:
+            print(f"Data processing error: {e}")
+            return None
 

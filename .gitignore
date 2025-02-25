@@ -2,3 +2,4 @@ ngrok_setup.sh
 local_test.ipynb
 __pycache__/
 Campaign_Leads.csv
+.env
