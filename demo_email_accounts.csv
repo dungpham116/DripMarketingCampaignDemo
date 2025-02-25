@@ -1,0 +1,2 @@
+from_name;from_email;user_name;password;smtp_host;smtp_port;imap_host;imap_port;max_email_per_day;custom_tracking_url;warmup_enabled;total_warmup_per_day;daily_rampup;reply_rate_percentage;bcc;signature;different_reply_to_address;imap_user_name;imap_password
+Son Nguyen;son.nguyen@jesselton.capital;son.nguyen@jesselton.capital;@Jesselton2025;smtp.gmail.com;587;imap.gmail.com;993;10;;TRUE;10;3;15;;<p>Sincerely,<br>Xern</p>;std.sonnguyen@gmail.com;son.nguyen@jesselton.capital;kkdq agtn pekz zvet

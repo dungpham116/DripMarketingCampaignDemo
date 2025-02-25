@@ -24,4 +24,8 @@ def create_app():
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(tracking.bp)
 
+    # Initialize SmartLead API
+    from app.smartlead_api import SmartleadAPI
+    app.smartlead = SmartleadAPI(app.config.get('SMARTLEAD_API_KEY'))
+
     return app 

@@ -1,119 +1,912 @@
 {% extends "base.html" %}
 
-{% block title %}Setup Email Sequence{% endblock %}
+{% block title %}Advanced Email Sequence{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h2>Setup Email Sequence for {{ campaign.name }}</h2>
+<div class="container">
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Advanced Email Sequence for {{ campaign.name }}</h2>
+        </div>
+        <div class="card-body">
+            <p class="lead">Create your advanced email sequence with conditional branching based on recipient behavior.</p>
+            
+            <!-- Sequence Visualization -->
+            <div class="sequence-visualization mb-4">
+                <div id="sequence-flow-diagram" class="border p-3 bg-light" style="min-height: 200px;">
+                    <div class="text-center text-muted" id="empty-diagram-message">
+                        Your sequence flow will appear here as you build it.
+                    </div>
+                    <div id="diagram-content"></div>
+                </div>
             </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div id="sequence-container">
-                        <div class="sequence-item mb-4">
-                            <h4>Email 1 (Initial Email)</h4>
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <div class="mb-3">
-                                        <label class="form-label">Email Template</label>
-                                        <select name="template_id[]" class="form-control" required>
-                                            <option value="">Select Template</option>
-                                            {% for template in templates %}
-                                            <option value="{{ template.id }}">{{ template.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-8">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label class="form-label">Days</label>
-                                                <input type="number" name="delay_days[]" class="form-control" value="0" min="0" required>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label class="form-label">Hours</label>
-                                                <input type="number" name="delay_hours[]" class="form-control" value="0" min="0" max="23" required>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label class="form-label">Minutes</label>
-                                                <input type="number" name="delay_minutes[]" class="form-control" value="0" min="0" max="59" required>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+            
+            <form method="POST" id="advancedSequenceForm">
+                <!-- Main sequence container -->
+                <div id="main-sequence" class="mb-4">
+                    <h3 class="border-bottom pb-2">Main Sequence</h3>
+                    <div id="main-sequence-container" class="sequence-container">
+                        <!-- Initial email will be added by JS -->
+                    </div>
+                    <div class="text-center mb-4">
+                        <button type="button" class="btn btn-primary" id="addMainStepBtn">
+                            <i class="bi bi-plus-circle"></i> Add Email to Main Sequence
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Conditional branches -->
+                <div id="branches-container" class="mb-4">
+                    <h3 class="border-bottom pb-2">Conditional Branches</h3>
+                    <div id="empty-branches-message" class="alert alert-info">
+                        Add conditional branches to create different paths based on how recipients interact with your emails.
+                    </div>
+                    <div id="branches-list">
+                        <!-- Branches will be added here -->
+                    </div>
+                    <div class="text-center mb-3">
+                        <button type="button" class="btn btn-success" id="addBranchBtn">
+                            <i class="bi bi-git-branch"></i> Add New Branch
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('campaign.view', campaign_id=campaign.id) }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-success btn-lg">Save Advanced Sequence</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Email Step Modal -->
+<div class="modal fade" id="addStepModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="stepModalTitle">Add Email Step</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Email Template</label>
+                    <select class="form-select" id="stepTemplate">
+                        <option value="">Select a template</option>
+                        {% for template in templates %}
+                        <option value="{{ template.id }}" data-name="{{ template.name }}" 
+                                data-subject="{{ template.subject }}" 
+                                data-body="{{ template.body }}">
+                            {{ template.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">When to send:</label>
+                    <div class="row" id="delayControls">
+                        <div class="col-md-4">
+                            <label class="form-label">Days</label>
+                            <input type="number" class="form-control" id="stepDelayDays" min="0" value="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Hours</label>
+                            <input type="number" class="form-control" id="stepDelayHours" min="0" max="23" value="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Minutes</label>
+                            <input type="number" class="form-control" id="stepDelayMinutes" min="0" max="59" value="0">
                         </div>
                     </div>
-                    
-                    <button type="button" class="btn btn-secondary mb-3" onclick="addSequence()">
-                        Add Another Email
-                    </button>
-                    
-                    <div>
-                        <button type="submit" class="btn btn-primary">Save Sequence</button>
-                    </div>
-                </form>
+                </div>
+                
+                <div class="mb-3" id="conditionControls">
+                    <label class="form-label">Send condition (for non-first emails):</label>
+                    <select class="form-select" id="stepCondition">
+                        <option value="always">Always send after delay</option>
+                        <option value="opened">Only if previous email was opened</option>
+                        <option value="not_opened">Only if previous email was NOT opened</option>
+                        <option value="replied">Only if recipient replied to previous email</option>
+                        <option value="not_replied">Only if recipient did NOT reply to previous email</option>
+                        <option value="clicked">Only if recipient clicked a link in previous email</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveStepBtn">Add Email</button>
             </div>
         </div>
     </div>
 </div>
 
-<script>
-let sequenceCount = 1;
+<!-- Add Branch Modal -->
+<div class="modal fade" id="addBranchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Conditional Branch</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Branch from which email:</label>
+                    <select class="form-select" id="branchFrom">
+                        <!-- Will be populated dynamically -->
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Branch condition:</label>
+                    <select class="form-select" id="branchCondition">
+                        <option value="opened">If email is opened</option>
+                        <option value="not_opened">If email is NOT opened</option>
+                        <option value="replied">If recipient replies</option>
+                        <option value="not_replied">If recipient does NOT reply</option>
+                        <option value="clicked">If recipient clicks a link</option>
+                        <option value="not_clicked">If recipient does NOT click a link</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Branch name (for your reference):</label>
+                    <input type="text" class="form-control" id="branchName" placeholder="e.g., Follow-up for non-responders">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="createBranchBtn">Create Branch</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-function addSequence() {
-    sequenceCount++;
-    const container = document.getElementById('sequence-container');
+<!-- Add Bootstrap Icons and required JS libraries -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsplumb@2.15.6/dist/js/jsplumb.min.js"></script>
+
+<style>
+/* Styles for sequence diagram */
+.sequence-node {
+    border: 2px solid #6c757d;
+    border-radius: 8px;
+    padding: 10px;
+    width: 200px;
+    background-color: white;
+    position: relative;
+    z-index: 10;
+    margin: 10px;
+}
+
+.start-node {
+    border-color: #28a745;
+    background-color: #e9f7ef;
+}
+
+.condition-node {
+    border-color: #fd7e14;
+    background-color: #fff9f1;
+}
+
+.branch-container {
+    border: 1px dashed #6c757d;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background-color: #f8f9fa;
+}
+
+.branch-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.sequence-item {
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    position: relative;
+}
+
+.sequence-header {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sequence-body {
+    padding: 20px;
+}
+
+.condition-pill {
+    display: inline-block;
+    padding: 5px 10px;
+    background-color: #e9ecef;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    margin-right: 10px;
+}
+
+.timeline-marker {
+    position: absolute;
+    transform: translateX(-50%);
+    text-align: center;
+    font-size: 0.75rem;
+}
+
+.timeline-marker::before {
+    content: '';
+    display: block;
+    width: 2px;
+    height: 10px;
+    background-color: #6c757d;
+    margin: 0 auto 5px;
+}
+</style>
+
+<script>
+// Global variables
+let mainSequenceCount = 0;
+let branches = [];
+let jsPlumbInstance;
+let currentBranchId = null;
+let currentSequence = 'main';
+const templates = JSON.parse('{{ templates|tojson }}');
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize jsPlumb for sequence visualization
+    jsPlumbInstance = jsPlumb.getInstance({
+        Connector: ["Bezier", { curviness: 50 }],
+        PaintStyle: { stroke: "#6c757d", strokeWidth: 2 },
+        EndpointStyle: { radius: 5, fill: "#6c757d" },
+        HoverPaintStyle: { stroke: "#007bff" },
+        EndpointHoverStyle: { fill: "#007bff" },
+        Container: "diagram-content"
+    });
     
-    const sequenceHtml = `
-        <div class="sequence-item mb-4">
-            <h4>Email ${sequenceCount}</h4>
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="mb-3">
-                        <label class="form-label">Email Template</label>
-                        <select name="template_id[]" class="form-control" required>
-                            <option value="">Select Template</option>
-                            {% for template in templates %}
-                            <option value="{{ template.id }}">{{ template.name }}</option>
-                            {% endfor %}
-                        </select>
+    // Add initial email to main sequence
+    addMainSequenceStep();
+    
+    // Add event listener for adding main sequence steps
+    document.getElementById('addMainStepBtn').addEventListener('click', function() {
+        openAddStepModal('main');
+    });
+    
+    // Add event listener for adding branches
+    document.getElementById('addBranchBtn').addEventListener('click', openAddBranchModal);
+    
+    // Initialize form submission
+    document.getElementById('advancedSequenceForm').addEventListener('submit', submitSequence);
+    
+    // Save step button
+    document.getElementById('saveStepBtn').addEventListener('click', saveStep);
+    
+    // Create branch button
+    document.getElementById('createBranchBtn').addEventListener('click', createBranch);
+    
+    // Make main sequence sortable
+    new Sortable(document.getElementById('main-sequence-container'), {
+        animation: 150,
+        handle: '.sequence-header',
+        onEnd: function() {
+            updateSequenceOrder('main');
+            updateFlowDiagram();
+        }
+    });
+});
+
+// Open modal for adding a step
+function openAddStepModal(sequenceId) {
+    currentSequence = sequenceId;
+    
+    // Reset modal fields
+    document.getElementById('stepTemplate').value = '';
+    document.getElementById('stepDelayDays').value = '1';
+    document.getElementById('stepDelayHours').value = '0';
+    document.getElementById('stepDelayMinutes').value = '0';
+    
+    // Set modal title based on whether it's main sequence or a branch
+    const modalTitle = sequenceId === 'main' ? 
+        'Add Email to Main Sequence' : 
+        `Add Email to Branch "${getBranchById(sequenceId).name}"`;
+    document.getElementById('stepModalTitle').textContent = modalTitle;
+    
+    // Show/hide condition controls based on sequence position
+    const isFirstEmail = (sequenceId === 'main' && mainSequenceCount === 0) || 
+                         (sequenceId !== 'main' && getBranchById(sequenceId).steps.length === 0);
+    document.getElementById('conditionControls').style.display = isFirstEmail ? 'none' : 'block';
+    
+    const modal = new bootstrap.Modal(document.getElementById('addStepModal'));
+    modal.show();
+}
+
+// Save the step from modal
+function saveStep() {
+    const templateId = document.getElementById('stepTemplate').value;
+    if (!templateId) {
+        alert('Please select an email template');
+        return;
+    }
+    
+    const template = templates.find(t => t.id == templateId);
+    const delayDays = parseInt(document.getElementById('stepDelayDays').value) || 0;
+    const delayHours = parseInt(document.getElementById('stepDelayHours').value) || 0;
+    const delayMinutes = parseInt(document.getElementById('stepDelayMinutes').value) || 0;
+    
+    const condition = document.getElementById('stepCondition').value;
+    
+    // Create step data
+    const stepData = {
+        template_id: templateId,
+        template_name: template.name,
+        template_subject: template.subject,
+        delay_days: delayDays,
+        delay_hours: delayHours,
+        delay_minutes: delayMinutes,
+        condition: condition
+    };
+    
+    // Add to appropriate sequence
+    if (currentSequence === 'main') {
+        addMainSequenceStep(stepData);
+    } else {
+        addBranchStep(currentSequence, stepData);
+    }
+    
+    // Update flow diagram
+    updateFlowDiagram();
+    
+    // Close modal
+    bootstrap.Modal.getInstance(document.getElementById('addStepModal')).hide();
+}
+
+// Add step to main sequence
+function addMainSequenceStep(stepData = null) {
+    mainSequenceCount++;
+    const sequenceId = mainSequenceCount;
+    const isFirst = mainSequenceCount === 1;
+    
+    if (!stepData) {
+        stepData = {
+            template_id: '',
+            template_name: 'Select a template',
+            template_subject: '',
+            delay_days: isFirst ? 0 : 1,
+            delay_hours: 0,
+            delay_minutes: 0,
+            condition: 'always'
+        };
+    }
+    
+    const container = document.getElementById('main-sequence-container');
+    
+    const stepHtml = createStepHtml('main', sequenceId, stepData, isFirst);
+    container.insertAdjacentHTML('beforeend', stepHtml);
+    
+    // Update diagram
+    updateFlowDiagram();
+    
+    return sequenceId;
+}
+
+// Create HTML for a sequence step
+function createStepHtml(sequenceType, stepId, stepData, isFirst) {
+    const conditionText = getConditionText(stepData.condition);
+    const delayText = isFirst ? 
+        'Sent immediately when contact is added' : 
+        `Sent ${stepData.delay_days} days, ${stepData.delay_hours} hours, ${stepData.delay_minutes} minutes after previous email`;
+    
+    return `
+        <div class="sequence-item" id="${sequenceType}_step_${stepId}" data-step-id="${stepId}">
+            <div class="sequence-header">
+                <strong>Email ${stepId}</strong>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="editStep('${sequenceType}', ${stepId})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    ${!isFirst ? `
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeStep('${sequenceType}', ${stepId})">
+                        <i class="bi bi-trash"></i>
+                    </button>` : ''}
+                    ${sequenceType === 'main' ? `
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="addBranchFromStep(${stepId})">
+                        <i class="bi bi-git-branch"></i> Add Branch
+                    </button>` : ''}
+                </div>
+            </div>
+            <div class="sequence-body">
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label">Email Template:</label>
+                        <div class="alert alert-light">
+                            <strong>${stepData.template_name}</strong>
+                            ${stepData.template_subject ? `<div><small>Subject: ${stepData.template_subject}</small></div>` : ''}
+                            <input type="hidden" name="${sequenceType}_template_id_${stepId}" value="${stepData.template_id}">
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-8">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Days</label>
-                                <input type="number" name="delay_days[]" class="form-control" value="${sequenceCount - 1}" min="0" required>
-                            </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="condition-pill">
+                            <i class="bi bi-clock"></i> ${delayText}
                         </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Hours</label>
-                                <input type="number" name="delay_hours[]" class="form-control" value="${sequenceCount - 1}" min="0" max="23" required>
-                            </div>
+                        <input type="hidden" name="${sequenceType}_delay_days_${stepId}" value="${stepData.delay_days}">
+                        <input type="hidden" name="${sequenceType}_delay_hours_${stepId}" value="${stepData.delay_hours}">
+                        <input type="hidden" name="${sequenceType}_delay_minutes_${stepId}" value="${stepData.delay_minutes}">
+                    </div>
+                    <div class="col-md-6">
+                        ${!isFirst ? `
+                        <div class="condition-pill">
+                            <i class="bi bi-filter"></i> ${conditionText}
                         </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Minutes</label>
-                                <input type="number" name="delay_minutes[]" class="form-control" value="${sequenceCount - 1}" min="0" max="59" required>
-                            </div>
-                        </div>
+                        <input type="hidden" name="${sequenceType}_condition_${stepId}" value="${stepData.condition}">
+                        ` : ''}
                     </div>
                 </div>
             </div>
         </div>
     `;
+}
+
+// Get text description of condition
+function getConditionText(condition) {
+    switch(condition) {
+        case 'always': return 'Always send';
+        case 'opened': return 'Send if previous email was opened';
+        case 'not_opened': return 'Send if previous email was NOT opened';
+        case 'replied': return 'Send if recipient replied';
+        case 'not_replied': return 'Send if recipient did NOT reply';
+        case 'clicked': return 'Send if recipient clicked a link';
+        default: return 'Always send';
+    }
+}
+
+// Open modal to add a branch
+function openAddBranchModal() {
+    // Populate the branch from dropdown with main sequence steps
+    const branchFromSelect = document.getElementById('branchFrom');
+    branchFromSelect.innerHTML = '';
     
-    container.insertAdjacentHTML('beforeend', sequenceHtml);
+    // Only main sequence steps can have branches
+    for (let i = 1; i <= mainSequenceCount; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `Email ${i} in Main Sequence`;
+        branchFromSelect.appendChild(option);
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('addBranchModal'));
+    modal.show();
+}
+
+// Create a new branch
+function createBranch() {
+    const branchFrom = document.getElementById('branchFrom').value;
+    const condition = document.getElementById('branchCondition').value;
+    const name = document.getElementById('branchName').value || `Branch from Email ${branchFrom}`;
+    
+    const branchId = 'branch_' + (branches.length + 1);
+    
+    // Create branch object
+    const branch = {
+        id: branchId,
+        name: name,
+        from_step: branchFrom,
+        condition: condition,
+        steps: []
+    };
+    
+    branches.push(branch);
+    
+    // Add to UI
+    addBranchToUI(branch);
+    
+    // Close modal
+    bootstrap.Modal.getInstance(document.getElementById('addBranchModal')).hide();
+    
+    // Open add step modal for the new branch
+    currentSequence = branchId;
+    openAddStepModal(branchId);
+    
+    // Update flow diagram
+    updateFlowDiagram();
+}
+
+// Add branch to UI
+function addBranchToUI(branch) {
+    const branchesContainer = document.getElementById('branches-list');
+    const emptyMessage = document.getElementById('empty-branches-message');
+    
+    if (emptyMessage) {
+        emptyMessage.style.display = 'none';
+    }
+    
+    const branchHtml = `
+        <div class="branch-container" id="${branch.id}">
+            <div class="branch-header">
+                <h4 class="mb-0">
+                    <span class="badge bg-secondary me-2">Branch ${branches.length}</span>
+                    ${branch.name}
+                </h4>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="editBranch('${branch.id}')">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBranch('${branch.id}')">
+                        <i class="bi bi-trash"></i> Remove
+                    </button>
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <strong>Branch Condition:</strong> 
+                If Email ${branch.from_step} in main sequence: ${getConditionText(branch.condition)}
+                <input type="hidden" name="branch_from_${branch.id}" value="${branch.from_step}">
+                <input type="hidden" name="branch_condition_${branch.id}" value="${branch.condition}">
+            </div>
+            
+            <div id="${branch.id}_container" class="sequence-container">
+                <!-- Branch steps will be added here -->
+            </div>
+            
+            <div class="text-center mt-3">
+                <button type="button" class="btn btn-outline-primary" onclick="openAddStepModal('${branch.id}')">
+                    <i class="bi bi-plus-circle"></i> Add Email to Branch
+                </button>
+            </div>
+        </div>
+    `;
+    
+    branchesContainer.insertAdjacentHTML('beforeend', branchHtml);
+    
+    // Make branch container sortable
+    new Sortable(document.getElementById(`${branch.id}_container`), {
+        animation: 150,
+        handle: '.sequence-header',
+        onEnd: function() {
+            updateSequenceOrder(branch.id);
+            updateFlowDiagram();
+        }
+    });
+}
+
+// Add step to a branch
+function addBranchStep(branchId, stepData) {
+    const branch = getBranchById(branchId);
+    if (!branch) return;
+    
+    branch.steps.push(stepData);
+    const stepId = branch.steps.length;
+    const isFirst = stepId === 1;
+    
+    const container = document.getElementById(`${branchId}_container`);
+    const stepHtml = createStepHtml(branchId, stepId, stepData, isFirst);
+    container.insertAdjacentHTML('beforeend', stepHtml);
+    
+    // Update flow diagram
+    updateFlowDiagram();
+}
+
+// Get branch by ID
+function getBranchById(branchId) {
+    return branches.find(b => b.id === branchId);
+}
+
+// Generate sequence flow diagram
+function updateFlowDiagram() {
+    const diagramContent = document.getElementById('diagram-content');
+    const emptyMessage = document.getElementById('empty-diagram-message');
+    
+    // Clear existing diagram
+    diagramContent.innerHTML = '';
+    jsPlumbInstance.reset();
+    
+    // Hide empty message
+    emptyMessage.style.display = 'none';
+    
+    // Add start node
+    diagramContent.innerHTML = `
+        <div id="start_node" class="sequence-node start-node" style="left: 50px; top: 50px;">
+            <strong>Start</strong>
+            <div>Contact Added</div>
+        </div>
+    `;
+    
+    // Add main sequence nodes
+    let lastY = 50;
+    let lastX = 50;
+    
+    for (let i = 1; i <= mainSequenceCount; i++) {
+        lastX = 300;
+        const nodeId = `main_node_${i}`;
+        
+        // Get template name
+        const templateInput = document.querySelector(`input[name="main_template_id_${i}"]`);
+        const templateId = templateInput ? templateInput.value : '';
+        const template = templates.find(t => t.id == templateId);
+        const templateName = template ? template.name : 'No template selected';
+        
+        diagramContent.innerHTML += `
+            <div id="${nodeId}" class="sequence-node" style="left: ${lastX}px; top: ${lastY}px;">
+                <strong>Email ${i}</strong>
+                <div>${templateName}</div>
+            </div>
+        `;
+        
+        // Connect to previous node
+        if (i === 1) {
+            jsPlumbInstance.connect({
+                source: 'start_node',
+                target: nodeId,
+                anchor: ['Right', 'Left'],
+                endpoint: 'Blank',
+                overlays: [
+                    ['Label', { label: 'Initial Email', location: 0.5, cssClass: 'connection-label' }]
+                ]
+            });
+        } else {
+            jsPlumbInstance.connect({
+                source: `main_node_${i-1}`,
+                target: nodeId,
+                anchor: ['Bottom', 'Left'],
+                endpoint: 'Blank',
+                overlays: [
+                    ['Label', { 
+                        label: `After ${document.querySelector(`input[name="main_delay_days_${i}"]`).value} days`, 
+                        location: 0.5, 
+                        cssClass: 'connection-label' 
+                    }]
+                ]
+            });
+        }
+        
+        lastY += 100;
+        
+        // Add branches from this step
+        branches.filter(b => b.from_step == i).forEach((branch, bIndex) => {
+            const branchStartX = lastX + 250;
+            const branchStartY = lastY - 100 + (bIndex * 150);
+            
+            // Add condition node
+            const conditionNodeId = `condition_${branch.id}`;
+            diagramContent.innerHTML += `
+                <div id="${conditionNodeId}" class="sequence-node condition-node" 
+                     style="left: ${branchStartX}px; top: ${branchStartY}px;">
+                    <strong>Condition</strong>
+                    <div>${getConditionText(branch.condition)}</div>
+                </div>
+            `;
+            
+            // Connect main node to condition
+            jsPlumbInstance.connect({
+                source: nodeId,
+                target: conditionNodeId,
+                anchor: ['Right', 'Left'],
+                endpoint: 'Blank'
+            });
+            
+            // Add branch steps
+            let branchY = branchStartY;
+            
+            branch.steps.forEach((step, stepIndex) => {
+                branchY += 100;
+                const branchNodeId = `${branch.id}_node_${stepIndex+1}`;
+                
+                diagramContent.innerHTML += `
+                    <div id="${branchNodeId}" class="sequence-node" 
+                         style="left: ${branchStartX + 250}px; top: ${branchY}px;">
+                        <strong>Branch ${branches.indexOf(branch)+1} - Email ${stepIndex+1}</strong>
+                        <div>${step.template_name}</div>
+                    </div>
+                `;
+                
+                // Connect nodes
+                if (stepIndex === 0) {
+                    jsPlumbInstance.connect({
+                        source: conditionNodeId,
+                        target: branchNodeId,
+                        anchor: ['Right', 'Left'],
+                        endpoint: 'Blank',
+                        overlays: [
+                            ['Label', { label: 'Yes', location: 0.5, cssClass: 'connection-label' }]
+                        ]
+                    });
+                } else {
+                    jsPlumbInstance.connect({
+                        source: `${branch.id}_node_${stepIndex}`,
+                        target: branchNodeId,
+                        anchor: ['Bottom', 'Left'],
+                        endpoint: 'Blank',
+                        overlays: [
+                            ['Label', { 
+                                label: `After ${step.delay_days} days`, 
+                                location: 0.5, 
+                                cssClass: 'connection-label' 
+                            }]
+                        ]
+                    });
+                }
+            });
+        });
+    }
+    
+    // Initialize jsPlumb
+    jsPlumbInstance.repaintEverything();
+}
+
+// Submit sequence form
+function submitSequence(e) {
+    e.preventDefault();
+    
+    // Build sequence data 
+    const sequenceData = {
+        main_sequence: [],
+        branches: []
+    };
+    
+    // Add main sequence steps
+    for (let i = 1; i <= mainSequenceCount; i++) {
+        const templateId = document.querySelector(`input[name="main_template_id_${i}"]`).value;
+        const delayDays = parseInt(document.querySelector(`input[name="main_delay_days_${i}"]`).value) || 0;
+        const delayHours = parseInt(document.querySelector(`input[name="main_delay_hours_${i}"]`).value) || 0;
+        const delayMinutes = parseInt(document.querySelector(`input[name="main_delay_minutes_${i}"]`).value) || 0;
+        
+        let condition = 'always';
+        if (i > 1) {
+            const conditionInput = document.querySelector(`input[name="main_condition_${i}"]`);
+            if (conditionInput) {
+                condition = conditionInput.value;
+            }
+        }
+        
+        sequenceData.main_sequence.push({
+            template_id: templateId,
+            delay_days: delayDays,
+            delay_hours: delayHours,
+            delay_minutes: delayMinutes,
+            condition: condition,
+            sequence_order: i
+        });
+    }
+    
+    // Add branches
+    branches.forEach(branch => {
+        const branchData = {
+            from_step: document.querySelector(`input[name="branch_from_${branch.id}"]`).value,
+            condition: document.querySelector(`input[name="branch_condition_${branch.id}"]`).value,
+            steps: []
+        };
+        
+        // Add branch steps
+        branch.steps.forEach((step, index) => {
+            const templateId = document.querySelector(`input[name="${branch.id}_template_id_${index+1}"]`).value;
+            const delayDays = parseInt(document.querySelector(`input[name="${branch.id}_delay_days_${index+1}"]`).value) || 0;
+            const delayHours = parseInt(document.querySelector(`input[name="${branch.id}_delay_hours_${index+1}"]`).value) || 0;
+            const delayMinutes = parseInt(document.querySelector(`input[name="${branch.id}_delay_minutes_${index+1}"]`).value) || 0;
+            
+            let condition = 'always';
+            if (index > 0) {
+                const conditionInput = document.querySelector(`input[name="${branch.id}_condition_${index+1}"]`);
+                if (conditionInput) {
+                    condition = conditionInput.value;
+                }
+            }
+            
+            branchData.steps.push({
+                template_id: templateId,
+                delay_days: delayDays,
+                delay_hours: delayHours,
+                delay_minutes: delayMinutes,
+                condition: condition,
+                sequence_order: index + 1
+            });
+        });
+        
+        sequenceData.branches.push(branchData);
+    });
+    
+    // Prepare form data to submit
+    const formData = new FormData();
+    formData.append('sequence_data', JSON.stringify(sequenceData));
+    
+    // Submit the form
+    const form = document.getElementById('advancedSequenceForm');
+    form.appendChild(document.createElement('input')).setAttribute('type', 'hidden');
+    form.lastChild.setAttribute('name', 'sequence_data');
+    form.lastChild.setAttribute('value', JSON.stringify(sequenceData));
+    form.submit();
+}
+
+// Helper functions for editing and removing steps and branches
+function editStep(sequenceType, stepId) {
+    // Will implement if needed
+    alert('Edit functionality to be implemented');
+}
+
+function removeStep(sequenceType, stepId) {
+    if (confirm('Are you sure you want to remove this email?')) {
+        if (sequenceType === 'main') {
+            // Remove main sequence step (more complex, would need to update all IDs)
+            alert('Removing main sequence emails is not supported in this demo');
+        } else {
+            // Remove branch step
+            const branch = getBranchById(sequenceType);
+            if (branch && branch.steps.length >= stepId) {
+                branch.steps.splice(stepId - 1, 1);
+                document.getElementById(`${sequenceType}_step_${stepId}`).remove();
+                
+                // Update remaining steps
+                for (let i = stepId; i <= branch.steps.length; i++) {
+                    const step = document.getElementById(`${sequenceType}_step_${i+1}`);
+                    if (step) {
+                        step.id = `${sequenceType}_step_${i}`;
+                        step.dataset.stepId = i;
+                        step.querySelector('.sequence-header strong').textContent = `Email ${i}`;
+                    }
+                }
+                
+                updateFlowDiagram();
+            }
+        }
+    }
+}
+
+function editBranch(branchId) {
+    // Will implement if needed
+    alert('Edit branch functionality to be implemented');
+}
+
+function removeBranch(branchId) {
+    if (confirm('Are you sure you want to remove this branch and all its emails?')) {
+        const branchIndex = branches.findIndex(b => b.id === branchId);
+        if (branchIndex !== -1) {
+            branches.splice(branchIndex, 1);
+            document.getElementById(branchId).remove();
+            
+            // Show empty message if no branches left
+            if (branches.length === 0) {
+                document.getElementById('empty-branches-message').style.display = 'block';
+            }
+            
+            updateFlowDiagram();
+        }
+    }
+}
+
+function addBranchFromStep(stepId) {
+    document.getElementById('branchFrom').value = stepId;
+    openAddBranchModal();
+}
+
+function updateSequenceOrder(sequenceId) {
+    if (sequenceId === 'main') {
+        // Update main sequence order
+        const items = document.querySelectorAll('#main-sequence-container .sequence-item');
+        items.forEach((item, index) => {
+            const number = index + 1;
+            item.querySelector('.sequence-header strong').textContent = `Email ${number}`;
+        });
+    } else {
+        // Update branch order
+        const branch = getBranchById(sequenceId);
+        if (branch) {
+            const items = document.querySelectorAll(`#${sequenceId}_container .sequence-item`);
+            items.forEach((item, index) => {
+                const number = index + 1;
+                item.querySelector('.sequence-header strong').textContent = `Email ${number}`;
+            });
+        }
+    }
 }
 </script>
 {% endblock %} 
