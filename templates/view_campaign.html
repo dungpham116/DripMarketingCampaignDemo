@@ -1,0 +1,648 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ campaign.name }} - Dripmail{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        transition: transform 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .chart-container {
+        position: relative;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    .metric-card {
+        text-align: center;
+        padding: 15px;
+    }
+    .metric-value {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .metric-label {
+        text-transform: uppercase;
+        font-size: 12px;
+        color: #6c757d;
+    }
+    .progress {
+        height: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ campaign.name }}</h1>
+    <div>
+        <a href="{{ url_for('upload_leads', campaign_id=campaign.id) }}" class="btn btn-success">
+            <i class="fas fa-upload"></i> Upload Leads
+        </a>
+        <a href="{{ url_for('create_sequence', campaign_id=campaign.id) }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Sequence
+        </a>
+        
+        {% if campaign.status == 'RUNNING' %}
+        <form method="post" action="{{ url_for('toggle_campaign_status', campaign_id=campaign.id) }}" class="d-inline">
+            <input type="hidden" name="status" value="STOP">
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-stop"></i> Stop Campaign
+            </button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('toggle_campaign_status', campaign_id=campaign.id) }}" class="d-inline">
+            <input type="hidden" name="status" value="START">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-play"></i> Start Campaign
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Campaign Stats Summary -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card metric-card bg-light">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small mb-2">Open Rate</h6>
+                <h2 class="metric-value text-success">{{ campaign_stats.open_rate }}%</h2>
+                <div class="progress">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ campaign_stats.open_rate }}%;" 
+                         aria-valuenow="{{ campaign_stats.open_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card bg-light">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small mb-2">Reply Rate</h6>
+                <h2 class="metric-value text-primary">{{ campaign_stats.reply_rate }}%</h2>
+                <div class="progress">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ campaign_stats.reply_rate }}%;" 
+                         aria-valuenow="{{ campaign_stats.reply_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card bg-light">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small mb-2">Bounce Rate</h6>
+                <h2 class="metric-value text-danger">{{ campaign_stats.bounce_rate }}%</h2>
+                <div class="progress">
+                    <div class="progress-bar bg-danger" role="progressbar" style="width: {{ campaign_stats.bounce_rate }}%;" 
+                         aria-valuenow="{{ campaign_stats.bounce_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card bg-light">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small mb-2">Total Leads</h6>
+                <h2 class="metric-value text-dark">{{ leads|length }}</h2>
+                <div class="progress">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: 100%;" 
+                         aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Campaign Details</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        {% if campaign.status == 'STOPPED' %}
+                        <span class="badge badge-danger">Stopped</span>
+                        {% elif campaign.status == 'RUNNING' %}
+                        <span class="badge badge-success">Running</span>
+                        {% else %}
+                        <span class="badge badge-secondary">{{ campaign.status }}</span>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="col-sm-4">Created</dt>
+                    <dd class="col-sm-8">{{ campaign.created_at }}</dd>
+                    
+                    <dt class="col-sm-4">Leads</dt>
+                    <dd class="col-sm-8">{{ campaign.lead_count }}</dd>
+                </dl>
+            </div>
+        </div>
+        
+        <!-- Lead Status Distribution Chart -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Lead Status Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="leadStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Email Accounts Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Email Accounts</h5>
+                <a href="{{ url_for('manage_email_accounts', campaign_id=campaign.id) }}" class="btn btn-sm btn-outline-primary">Manage</a>
+            </div>
+            <div class="card-body">
+                {% if campaign.email_accounts and campaign.email_accounts|length > 0 %}
+                    <ul class="list-group">
+                        {% for account in campaign.email_accounts %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ account.from_email }}
+                            <span class="badge badge-primary badge-pill">{{ account.daily_sent_count|default(0) }}/{{ account.message_per_day|default(0) }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">No email accounts assigned to this campaign.</p>
+                    <small class="text-info">Email accounts: {{ campaign.email_accounts|default('None') }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <ul class="nav nav-tabs" id="campaignTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="sequences-tab" data-toggle="tab" href="#sequences" role="tab">
+                    Sequences
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="leads-tab" data-toggle="tab" href="#leads" role="tab">
+                    Leads
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="schedule-tab" data-toggle="tab" href="#schedule" role="tab">
+                    Schedule
+                </a>
+            </li>
+        </ul>
+        
+        <div class="tab-content p-3 border border-top-0 rounded-bottom mb-4">
+            <!-- Sequences Tab -->
+            <div class="tab-pane fade show active" id="sequences" role="tabpanel">
+                {% if sequences %}
+                <div class="sequences-list">
+                    {% for sequence in sequences %}
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Sequence {{ sequence.seq_number }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Delay:</strong> {{ sequence.seq_delay_details.delay_in_days }} days</p>
+                            
+                            {% if sequence.seq_variants %}
+                            <h6>Variants:</h6>
+                            <div class="variants-list">
+                                {% for variant in sequence.seq_variants %}
+                                <div class="card mb-2">
+                                    <div class="card-header bg-light py-1">
+                                        <small>Variant {{ variant.variant_label }} ({{ variant.variant_distribution_percentage }}%)</small>
+                                    </div>
+                                    <div class="card-body py-2">
+                                        <p class="mb-1"><strong>Subject:</strong> {{ variant.subject }}</p>
+                                        <div class="email-body bg-light p-2 mt-2" style="max-height: 100px; overflow-y: auto;">
+                                            {{ variant.email_body|safe }}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p><strong>Subject:</strong> {{ sequence.subject }}</p>
+                            <div class="email-body bg-light p-2 mt-2" style="max-height: 100px; overflow-y: auto;">
+                                {{ sequence.email_body|safe }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No sequences created yet.</p>
+                    <a href="{{ url_for('create_sequence', campaign_id=campaign.id) }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create First Sequence
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Leads Tab -->
+            <div class="tab-pane fade" id="leads" role="tabpanel">
+                {% if leads and leads|length > 0 %}
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="leadsSearchInput" placeholder="Search leads...">
+                        <div class="input-group-append">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        </div>
+                    </div>
+                    <small class="text-muted">Found {{ leads|length }} leads</small>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover" id="leadsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Company</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lead in leads %}
+                            <tr>
+                                <td>
+                                    {% if lead.first_name or lead.last_name %}
+                                        <span class="font-weight-bold">{{ lead.first_name|default('') }} {{ lead.last_name|default('') }}</span>
+                                        {% if lead.title %}
+                                            <br><small class="text-muted">{{ lead.title }}</small>
+                                        {% endif %}
+                                    {% elif lead.name %}
+                                        <span class="font-weight-bold">{{ lead.name }}</span>
+                                    {% else %}
+                                        <em class="text-muted">No name</em>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if lead.email %}
+                                        <a href="mailto:{{ lead.email }}">{{ lead.email }}</a>
+                                    {% else %}
+                                        <em class="text-muted">No email</em>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if lead.company %}
+                                        <span class="font-weight-bold">{{ lead.company }}</span>
+                                    {% else %}
+                                        <em class="text-muted">-</em>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if lead.status == 'REPLIED' %}badge-success
+                                        {% elif lead.status == 'OPENED' %}badge-info
+                                        {% elif lead.status == 'BOUNCED' %}badge-danger
+                                        {% elif lead.status == 'SENT' %}badge-primary
+                                        {% elif lead.status == 'QUEUED' %}badge-warning
+                                        {% else %}badge-secondary
+                                        {% endif %}">
+                                        {{ lead.status|default('PENDING') }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info view-lead-btn" 
+                                            data-lead="{{ lead|tojson|escape }}"
+                                            data-toggle="modal" 
+                                            data-target="#leadDetailModal">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Lead Detail Modal -->
+                <div class="modal fade" id="leadDetailModal" tabindex="-1" role="dialog" aria-labelledby="leadDetailModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="leadDetailModalLabel">Lead Details</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="lead-header mb-3">
+                                    <h4 id="leadDetailName">Full Name</h4>
+                                    <h6 id="leadDetailCompany" class="text-muted">Company</h6>
+                                </div>
+                                <hr>
+                                <dl class="row" id="leadDetails">
+                                    <!-- Lead details will be inserted here dynamically -->
+                                </dl>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No leads added to this campaign yet.</p>
+                    <a href="{{ url_for('upload_leads', campaign_id=campaign.id) }}" class="btn btn-success">
+                        <i class="fas fa-upload"></i> Upload Leads
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Schedule Tab -->
+            <div class="tab-pane fade" id="schedule" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Campaign Schedule</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if campaign.schedule %}
+                        <dl class="row">
+                            <dt class="col-sm-4">Timezone</dt>
+                            <dd class="col-sm-8">{{ campaign.schedule.timezone }}</dd>
+                            
+                            <dt class="col-sm-4">Days</dt>
+                            <dd class="col-sm-8">
+                                {% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                                {% for day_index in campaign.schedule.days_of_the_week %}
+                                <span class="badge badge-primary">{{ days[day_index] }}</span>
+                                {% endfor %}
+                            </dd>
+                            
+                            <dt class="col-sm-4">Hours</dt>
+                            <dd class="col-sm-8">{{ campaign.schedule.start_hour }} to {{ campaign.schedule.end_hour }}</dd>
+                            
+                            <dt class="col-sm-4">Min Time Between Emails</dt>
+                            <dd class="col-sm-8">{{ campaign.schedule.min_time_btw_emails }} minutes</dd>
+                            
+                            <dt class="col-sm-4">Max New Leads/Day</dt>
+                            <dd class="col-sm-8">{{ campaign.schedule.max_new_leads_per_day }}</dd>
+                        </dl>
+                        <a href="{{ url_for('campaign_schedule', campaign_id=campaign.id) }}" class="btn btn-sm btn-primary">Edit Schedule</a>
+                        {% else %}
+                        <p class="text-muted">No schedule configured for this campaign.</p>
+                        <a href="{{ url_for('campaign_schedule', campaign_id=campaign.id) }}" class="btn btn-primary">Set Schedule</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Make sure the chart canvas exists
+        const leadStatusChartElement = document.getElementById('leadStatusChart');
+        if (!leadStatusChartElement) {
+            console.error('Lead status chart container not found');
+            return;
+        }
+        
+        // Lead Status Distribution Chart - handle possible JSON errors
+        let leadData;
+        try {
+            leadData = {{ leads|tojson|safe }};
+            if (!Array.isArray(leadData)) {
+                console.error('Lead data is not an array:', leadData);
+                leadData = [];
+            }
+        } catch (e) {
+            console.error('Error parsing leads data:', e);
+            leadData = [];
+        }
+        
+        // Count leads by status
+        const leadStatusCounts = {};
+        leadData.forEach(lead => {
+            if (!lead || typeof lead !== 'object') {
+                return; // Skip invalid leads
+            }
+            const status = lead.status || 'UNKNOWN';
+            leadStatusCounts[status] = (leadStatusCounts[status] || 0) + 1;
+        }); 
+        
+        // Convert to arrays for Chart.js
+        const statusLabels = Object.keys(leadStatusCounts);
+        const statusCounts = statusLabels.map(status => leadStatusCounts[status]);
+        
+        // Define colors for different statuses
+        const statusColors = {
+            'OPENED': '#28a745',      // Green for opened
+            'REPLIED': '#007bff',     // Blue for replied 
+            'BOUNCED': '#dc3545',     // Red for bounced
+            'SENT': '#17a2b8',        // Cyan for sent
+            'QUEUED': '#ffc107',      // Yellow for queued
+            'CLICKED': '#6610f2',     // Purple for clicked
+            'UNSUBSCRIBED': '#fd7e14', // Orange for unsubscribed
+            'PENDING': '#20c997',     // Teal for pending
+            'UNKNOWN': '#6c757d'      // Gray for unknown
+        };
+
+        // Generate vibrant colors for any other status dynamically
+        const vibrantColors = [
+            '#e83e8c', '#6f42c1', '#fd7e14', '#d63384', '#0dcaf0', 
+            '#198754', '#0d6efd', '#6610f2', '#d63384'
+        ];
+
+        // Map status to colors with fallback to vibrant colors
+        const colors = statusLabels.map((status, index) => 
+            statusColors[status] || vibrantColors[index % vibrantColors.length]);
+        
+        const leadStatusCtx = leadStatusChartElement.getContext('2d');
+        new Chart(leadStatusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusCounts,
+                    backgroundColor: colors,
+                    borderColor: colors
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Set up search functionality for leads table
+        const searchInput = document.getElementById('leadsSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const leadsTable = document.getElementById('leadsTable');
+                const rows = leadsTable.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+                
+                Array.from(rows).forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    if (text.indexOf(searchTerm) > -1) {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+            });
+        }
+        
+        // Setup lead detail modal with improved name and company display
+        const viewLeadBtns = document.querySelectorAll('.view-lead-btn');
+        if (viewLeadBtns.length > 0) {
+            viewLeadBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const leadData = JSON.parse(this.getAttribute('data-lead'));
+                    const detailsContainer = document.getElementById('leadDetails');
+                    const nameHeader = document.getElementById('leadDetailName');
+                    const companyHeader = document.getElementById('leadDetailCompany');
+                    
+                    // Format name for the header
+                    let displayName = '';
+                    if (leadData.first_name && leadData.last_name) {
+                        displayName = `${leadData.first_name} ${leadData.last_name}`;
+                    } else if (leadData.first_name) {
+                        displayName = leadData.first_name;
+                    } else if (leadData.last_name) {
+                        displayName = leadData.last_name;
+                    } else if (leadData.name) {
+                        displayName = leadData.name;
+                    } else if (leadData.email) {
+                        displayName = leadData.email.split('@')[0]; // Use part before @ as name
+                    } else {
+                        displayName = 'Unknown Lead';
+                    }
+                    
+                    // Set name and company in the header
+                    nameHeader.textContent = displayName;
+                    companyHeader.textContent = leadData.company || 'Unknown Company';
+                    
+                    // Clear previous data
+                    detailsContainer.innerHTML = '';
+                    
+                    // Add email as first field
+                    if (leadData.email) {
+                        detailsContainer.innerHTML += `
+                        <dt class="col-sm-4">Email</dt>
+                        <dd class="col-sm-8">
+                            <a href="mailto:${leadData.email}">${leadData.email}</a>
+                        </dd>`;
+                    }
+                    
+                    // Add title if available
+                    if (leadData.title) {
+                        detailsContainer.innerHTML += `
+                        <dt class="col-sm-4">Title</dt>
+                        <dd class="col-sm-8">${leadData.title}</dd>`;
+                    }
+                    
+                    // Add status with formatting
+                    if (leadData.status) {
+                        let statusClass = '';
+                        switch(leadData.status) {
+                            case 'REPLIED': statusClass = 'text-success'; break;
+                            case 'OPENED': statusClass = 'text-info'; break;
+                            case 'BOUNCED': statusClass = 'text-danger'; break;
+                            case 'SENT': statusClass = 'text-primary'; break;
+                            default: statusClass = 'text-secondary';
+                        }
+                        
+                        detailsContainer.innerHTML += `
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            <span class="${statusClass} font-weight-bold">${leadData.status}</span>
+                        </dd>`;
+                    }
+                    
+                    // Add all other fields
+                    for (const [key, value] of Object.entries(leadData)) {
+                        // Skip fields we've already handled or that are not relevant
+                        if (['id', 'first_name', 'last_name', 'name', 'email', 'company', 'status', 'title'].includes(key)) {
+                            continue;
+                        }
+                        
+                        // Skip objects and empty values
+                        if (typeof value === 'object' || value === null || value === '') {
+                            continue;
+                        }
+                        
+                        // Format the key name for display
+                        const displayKey = key.replace(/_/g, ' ')
+                                             .split(' ')
+                                             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                             .join(' ');
+                        
+                        detailsContainer.innerHTML += `
+                        <dt class="col-sm-4">${displayKey}</dt>
+                        <dd class="col-sm-8">${value}</dd>`;
+                    }
+                });
+            });
+        }
+        
+        // Periodically refresh campaign stats with error handling
+        const campaignId = {{ campaign.id }};
+        setInterval(function() {
+            fetch(`/api/campaign-stats/${campaignId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Update the stats display
+                        const metricValues = document.querySelectorAll('.metric-value');
+                        if (metricValues.length >= 3) {
+                            metricValues[0].textContent = data.stats.rates.open_rate + '%';
+                            metricValues[1].textContent = data.stats.rates.reply_rate + '%';
+                            metricValues[2].textContent = data.stats.rates.bounce_rate + '%';
+                        }
+                        
+                        // Update progress bars
+                        const progressBars = document.querySelectorAll('.progress-bar');
+                        if (progressBars.length >= 3) {
+                            progressBars[0].style.width = data.stats.rates.open_rate + '%';
+                            progressBars[1].style.width = data.stats.rates.reply_rate + '%';
+                            progressBars[2].style.width = data.stats.rates.bounce_rate + '%';
+                        }
+                    } else {
+                        console.error('Error in stats response:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching campaign stats:', error);
+                    // Don't keep retrying if there are persistent errors
+                    if (error.toString().includes('HTTP error 500')) {
+                        console.warn('Too many server errors, pausing automatic stats updates');
+                    }
+                });
+        }, 30000); // Refresh every 30 seconds
+    });
+</script>
+{% endblock %}

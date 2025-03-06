@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Schedule - {{ campaign.name }} - Dripmail{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Campaign Schedule</h1>
+    <a href="{{ url_for('view_campaign', campaign_id=campaign.id) }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Campaign
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">{{ campaign.name }}</h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <div class="form-group">
+                <label for="timezone">Timezone</label>
+                <select class="form-control" id="timezone" name="timezone" required>
+                    <option value="">Select Timezone</option>
+                    {% for tz in timezones %}
+                    <option value="{{ tz }}" {% if schedule and schedule.timezone == tz %}selected{% endif %}>{{ tz }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Days of the Week</label>
+                <div class="row">
+                    {% for day in days_of_week %}
+                    <div class="col-md-3">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="day_{{ loop.index0 }}" name="days_of_the_week" value="{{ loop.index0 }}"
+                                {% if schedule and loop.index0 in schedule.days_of_the_week %}checked{% endif %}>
+                            <label class="custom-control-label" for="day_{{ loop.index0 }}">{{ day }}</label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="start_hour">Start Time</label>
+                        <input type="time" class="form-control" id="start_hour" name="start_hour" 
+                               value="{{ schedule.start_hour if schedule else '09:00' }}" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="end_hour">End Time</label>
+                        <input type="time" class="form-control" id="end_hour" name="end_hour" 
+                               value="{{ schedule.end_hour if schedule else '17:00' }}" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="min_time_btw_emails">Minimum Time Between Emails (minutes)</label>
+                <input type="number" class="form-control" id="min_time_btw_emails" name="min_time_btw_emails" 
+                       value="{{ schedule.min_time_btw_emails if schedule else '5' }}" min="1" max="1440" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="max_new_leads_per_day">Maximum New Leads Per Day</label>
+                <input type="number" class="form-control" id="max_new_leads_per_day" name="max_new_leads_per_day" 
+                       value="{{ schedule.max_new_leads_per_day if schedule else '20' }}" min="1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="schedule_start_time">Schedule Start Date (Optional)</label>
+                <input type="date" class="form-control" id="schedule_start_time" name="schedule_start_time" 
+                       value="{{ schedule.schedule_start_time if schedule else '' }}">
+                <small class="form-text text-muted">
+                    If left empty, campaign will start immediately when activated.
+                </small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Save Schedule</button>
+            <a href="{{ url_for('view_campaign', campaign_id=campaign.id) }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

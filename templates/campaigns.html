@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Campaigns - Dripmail{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Campaigns</h1>
+    <a href="{{ url_for('create_campaign') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Create Campaign
+    </a>
+</div>
+
+<div class="row">
+    {% if campaigns %}
+        {% for campaign in campaigns %}
+            <div class="col-md-6">
+                {% with max_leads=max_leads %}
+                    {% include 'components/campaign_card.html' %}
+                {% endwith %}
+            </div>
+        {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <p>You don't have any campaigns yet. <a href="{{ url_for('create_campaign') }}">Create your first campaign</a>.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

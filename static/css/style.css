@@ -1,0 +1,87 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar {
+    margin-bottom: 20px;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    font-weight: bold;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 48px 0 0;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar-sticky {
+    position: relative;
+    top: 0;
+    height: calc(100vh - 48px);
+    padding-top: .5rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* Custom styles */
+
+/* Add these styles to your existing CSS file for better metrics display */
+.metric-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.metric-value {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 10px 0;
+    line-height: 1.2;
+}
+
+.progress {
+    height: 8px;
+    border-radius: 4px;
+    margin-top: 5px;
+}
+
+/* Improve lead table formatting */
+#leadsTable td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 85%;
+    padding: 0.4em 0.6em;
+}
+
+/* Style for the lead detail modal */
+.lead-header {
+    text-align: center;
+    padding: 10px 0;
+}
+
+#leadDetailName {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+#leadDetailCompany {
+    font-weight: 400;
+}

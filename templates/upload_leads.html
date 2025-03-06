@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Leads - Dripmail{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Upload Leads</h1>
+    <a href="{{ url_for('view_campaign', campaign_id=campaign_id) }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Campaign
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">CSV File Upload</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="csv_file">Select CSV File</label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="csv_file" name="csv_file" accept=".csv" required>
+                    <label class="custom-file-label" for="csv_file">Choose file...</label>
+                </div>
+                <small class="form-text text-muted">
+                    CSV file should contain columns: First Name, Last Name, Email, Phone Number, Company Name, etc.
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Upload Settings</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="ignore_global_block_list" name="ignore_global_block_list">
+                            <label class="custom-control-label" for="ignore_global_block_list">
+                                Ignore global block list
+                            </label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="ignore_unsubscribe_list" name="ignore_unsubscribe_list">
+                            <label class="custom-control-label" for="ignore_unsubscribe_list">
+                                Ignore unsubscribe list
+                            </label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="ignore_community_bounce_list" name="ignore_community_bounce_list">
+                            <label class="custom-control-label" for="ignore_community_bounce_list">
+                                Ignore community bounce list
+                            </label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="ignore_duplicate_leads" name="ignore_duplicate_leads">
+                            <label class="custom-control-label" for="ignore_duplicate_leads">
+                                Ignore duplicate leads in other campaigns
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Show filename when file is selected
+    document.querySelector('.custom-file-input').addEventListener('change', function(e) {
+        const fileName = this.files[0].name;
+        const nextSibling = this.nextElementSibling;
+        nextSibling.innerText = fileName;
+    });
+</script>
+{% endblock %}

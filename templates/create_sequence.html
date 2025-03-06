@@ -1,0 +1,449 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Sequence - Dripmail{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .editor-container {
+        height: 300px;
+        margin-bottom: 15px;
+    }
+    .variant-editor {
+        height: 250px;
+    }
+    .variant-card {
+        margin-bottom: 15px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+    }
+    .personalization-variables {
+        background: #f8f9fa;
+        border-radius: 4px;
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    .personalization-variables .badge {
+        cursor: pointer;
+        margin: 2px;
+        font-size: 90%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Create Email Sequence</h1>
+    <a href="{{ url_for('view_campaign', campaign_id=campaign_id) }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Campaign
+    </a>
+</div>
+
+<form id="sequenceForm">
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Sequence Settings</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="seqNumber">Sequence Number</label>
+                        <input type="number" class="form-control" id="seqNumber" value="1" min="1" required>
+                        <small class="form-text text-muted">Position in the email sequence.</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="delayDays">Delay (days)</label>
+                        <input type="number" class="form-control" id="delayDays" value="0" min="0" required>
+                        <small class="form-text text-muted">Number of days to wait before sending this sequence.</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="useABTesting">
+                    <label class="form-check-label" for="useABTesting">
+                        Enable A/B Testing (multiple variants)
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Personalization Variables Info -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Personalization Variables</h5>
+        </div>
+        <div class="card-body">
+            <p>Click on any variable to insert it into your email where your cursor is positioned:</p>
+            <div class="personalization-variables">
+                <span class="badge badge-primary var-tag" data-var="{first_name}">First Name</span>
+                <span class="badge badge-primary var-tag" data-var="{last_name}">Last Name</span>
+                <span class="badge badge-primary var-tag" data-var="{company_name}">Company</span>
+                <span class="badge badge-primary var-tag" data-var="{website}">Website</span>
+                <span class="badge badge-primary var-tag" data-var="{email}">Email</span>
+                <span class="badge badge-primary var-tag" data-var="{location}">Location</span>
+                <span class="badge badge-primary var-tag" data-var="{phone_number}">Phone</span>
+                <span class="badge badge-secondary var-tag" data-var="{my_signature}">My Signature</span>
+            </div>
+            <div class="alert alert-warning">
+                <strong>Tips:</strong>
+                <ul>
+                    <li>Always include fallbacks: "Hi {first_name|there}"</li>
+                    <li>Test your emails before launching the campaign</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Single Variant (default) -->
+    <div id="singleVariant" class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Email Content</h5>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="subject">Email Subject</label>
+                <input type="text" class="form-control" id="subject" placeholder="Enter subject line" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="emailBody">Email Body</label>
+                <div id="emailBodyEditor" class="editor-container"></div>
+                <textarea id="emailBody" style="display: none;"></textarea>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Multiple Variants (A/B testing) -->
+    <div id="multipleVariants" class="d-none">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">A/B Testing Settings</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="distributionType">Distribution Type</label>
+                            <select class="form-control" id="distributionType">
+                                <option value="MANUAL_EQUAL">Equal Distribution</option>
+                                <option value="AUTO_OPTIMIZE">Auto-Optimize</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="winningMetric">Winning Metric</label>
+                            <select class="form-control" id="winningMetric">
+                                <option value="OPEN_RATE">Open Rate</option>
+                                <option value="REPLY_RATE">Reply Rate</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="variants">
+            <!-- Variant templates will be added here dynamically -->
+        </div>
+        
+        <div class="text-center mb-4">
+            <button type="button" id="addVariantBtn" class="btn btn-outline-primary">
+                <i class="fas fa-plus"></i> Add Variant
+            </button>
+        </div>
+    </div>
+    
+    <div class="text-center mb-4">
+        <button type="submit" id="saveSequenceBtn" class="btn btn-lg btn-success">
+            <i class="fas fa-save"></i> Save Sequence
+        </button>
+    </div>
+</form>
+
+<!-- Variant Template (hidden) -->
+<template id="variantTemplate">
+    <div class="card mb-4 variant-card" data-variant-id="">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Variant <span class="variant-label"></span></h5>
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-variant-btn">
+                    <i class="fas fa-trash"></i> Remove
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label>Email Subject</label>
+                        <input type="text" class="form-control variant-subject" placeholder="Enter subject line" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Distribution (%)</label>
+                        <input type="number" class="form-control variant-distribution" value="50" min="1" max="99" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Email Body</label>
+                <div class="variant-body-editor editor-container variant-editor"></div>
+                <textarea class="variant-body" style="display: none;"></textarea>
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the rich text editor for the default email body
+        const quill = new Quill('#emailBodyEditor', {
+            theme: 'snow',
+            placeholder: 'Write your email content here...',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['link'],
+                    ['clean']
+                ]
+            }
+        });
+
+        // Track active editor for personalization variables
+        let activeEditor = quill;
+        let activeEditorType = 'main';
+
+        // Handle click on personalization variables
+        document.querySelectorAll('.var-tag').forEach(tag => {
+            tag.addEventListener('click', function() {
+                const variable = this.getAttribute('data-var');
+                
+                // Insert at current cursor position in the active editor
+                if (activeEditor) {
+                    const selection = activeEditor.getSelection();
+                    if (selection) {
+                        activeEditor.insertText(selection.index, variable);
+                    } else {
+                        activeEditor.insertText(0, variable);
+                    }
+                    
+                    // Focus back on the editor
+                    activeEditor.focus();
+                }
+            });
+        });
+
+        // Toggle between single variant and A/B testing
+        const useABTestingCheckbox = document.getElementById('useABTesting');
+        const singleVariantDiv = document.getElementById('singleVariant');
+        const multipleVariantsDiv = document.getElementById('multipleVariants');
+        
+        useABTestingCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                singleVariantDiv.classList.add('d-none');
+                multipleVariantsDiv.classList.remove('d-none');
+                
+                // Add initial variants if none exist
+                if (document.querySelectorAll('.variant-card').length === 0) {
+                    addVariant('A');
+                    addVariant('B');
+                }
+            } else {
+                singleVariantDiv.classList.remove('d-none');
+                multipleVariantsDiv.classList.add('d-none');
+            }
+        });
+        
+        // Add new variant
+        document.getElementById('addVariantBtn').addEventListener('click', function() {
+            const variants = document.querySelectorAll('.variant-card');
+            const nextLabel = getNextVariantLabel(variants.length);
+            addVariant(nextLabel);
+        });
+        
+        // Function to generate variant label (A, B, C, etc.)
+        function getNextVariantLabel(index) {
+            return String.fromCharCode(65 + index); // 65 is ASCII for 'A'
+        }
+        
+        // Function to add a new variant
+        function addVariant(label) {
+            const template = document.getElementById('variantTemplate');
+            const variantDiv = document.getElementById('variants');
+            
+            const clone = document.importNode(template.content, true);
+            const variantCard = clone.querySelector('.variant-card');
+            
+            // Set unique ID and label
+            const variantId = 'variant-' + Date.now();
+            variantCard.setAttribute('data-variant-id', variantId);
+            clone.querySelector('.variant-label').textContent = label;
+            
+            // Initialize editor after appending to DOM
+            variantDiv.appendChild(clone);
+            
+            // Initialize editor for this variant
+            const editorContainer = variantDiv.querySelector(`[data-variant-id="${variantId}"] .variant-body-editor`);
+            const variantEditor = new Quill(editorContainer, {
+                theme: 'snow',
+                placeholder: 'Write your email content here...',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['link'],
+                        ['clean']
+                    ]
+                }
+            });
+            
+            // Store editor reference in the DOM element for later access
+            variantCard.variantEditor = variantEditor;
+            
+            // Update active editor when this editor gets focus
+            editorContainer.addEventListener('click', function() {
+                activeEditor = variantEditor;
+                activeEditorType = 'variant';
+            });
+            
+            // Remove variant
+            const removeBtn = variantCard.querySelector('.remove-variant-btn');
+            removeBtn.addEventListener('click', function() {
+                const variants = document.querySelectorAll('.variant-card');
+                if (variants.length > 2) {
+                    variantCard.remove();
+                } else {
+                    alert('You must have at least 2 variants for A/B testing.');
+                }
+            });
+            
+            // Set initial distribution percentages
+            updateDistributionPercentages();
+        }
+        
+        // Update focus when main editor is clicked
+        document.getElementById('emailBodyEditor').addEventListener('click', function() {
+            activeEditor = quill;
+            activeEditorType = 'main';
+        });
+        
+        // Equal distribution percentages when using MANUAL_EQUAL
+        function updateDistributionPercentages() {
+            const distributionType = document.getElementById('distributionType').value;
+            if (distributionType === 'MANUAL_EQUAL') {
+                const variants = document.querySelectorAll('.variant-card');
+                const percentage = Math.floor(100 / variants.length);
+                
+                variants.forEach((variant, index) => {
+                    const input = variant.querySelector('.variant-distribution');
+                    // Last variant gets the remainder to ensure total is 100%
+                    if (index === variants.length - 1) {
+                        const allocated = percentage * (variants.length - 1);
+                        input.value = 100 - allocated;
+                    } else {
+                        input.value = percentage;
+                    }
+                });
+            }
+        }
+        
+        document.getElementById('distributionType').addEventListener('change', updateDistributionPercentages);
+        
+        // Form submission
+        document.getElementById('sequenceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get values from the form
+            const seqNumber = parseInt(document.getElementById('seqNumber').value);
+            const delayDays = parseInt(document.getElementById('delayDays').value);
+            const useABTesting = document.getElementById('useABTesting').checked;
+            
+            // Prepare the sequence data
+            let sequenceData = {
+                sequences: [{
+                    seq_number: seqNumber,
+                    seq_delay_details: {
+                        delay_in_days: delayDays
+                    }
+                }]
+            };
+            
+            // Get content based on whether A/B testing is used
+            if (useABTesting) {
+                const distributionType = document.getElementById('distributionType').value;
+                const winningMetric = document.getElementById('winningMetric').value;
+                
+                // Get all variants
+                const variants = document.querySelectorAll('.variant-card');
+                const seqVariants = [];
+                
+                variants.forEach((variant) => {
+                    const variantLabel = variant.querySelector('.variant-label').textContent;
+                    const subject = variant.querySelector('.variant-subject').value;
+                    const distributionPercentage = parseInt(variant.querySelector('.variant-distribution').value);
+                    
+                    // Get content from Quill editor
+                    const variantEditor = variant.variantEditor;
+                    const emailBody = variantEditor.root.innerHTML;
+                    
+                    seqVariants.push({
+                        subject: subject,
+                        email_body: emailBody,
+                        variant_label: variantLabel,
+                        variant_distribution_percentage: distributionPercentage
+                    });
+                });
+                
+                // Add to sequence data
+                sequenceData.sequences[0].variant_distribution_type = distributionType;
+                sequenceData.sequences[0].winning_metric_property = winningMetric;
+                sequenceData.sequences[0].seq_variants = seqVariants;
+                
+            } else {
+                // Single variant
+                const subject = document.getElementById('subject').value;
+                const emailBody = quill.root.innerHTML;
+                
+                sequenceData.sequences[0].subject = subject;
+                sequenceData.sequences[0].email_body = emailBody;
+            }
+            
+            // Save the sequence via API
+            fetch(`/campaigns/{{ campaign_id }}/sequences/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(sequenceData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    alert('Sequence created successfully!');
+                    window.location.href = `/campaigns/{{ campaign_id }}`;
+                } else {
+                    alert('Error: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('An error occurred while saving the sequence.');
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Lead Debug - Dripmail{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Lead Debug</h1>
+    <a href="{{ url_for('debug_leads', campaign_id=campaign_id) }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to All Leads
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Lead Information</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Key Fields</h6>
+                <dl class="row">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8">
+                        {% if lead.first_name or lead.last_name %}
+                            {{ lead.first_name|default('') }} {{ lead.last_name|default('') }}
+                        {% elif lead.name %}
+                            {{ lead.name }}
+                        {% else %}
+                            <em class="text-muted">No name</em>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">{{ lead.email|default('-') }}</dd>
+                    
+                    <dt class="col-sm-4">Company</dt>
+                    <dd class="col-sm-8">{{ lead.company|default('-') }}</dd>
+                    
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge 
+                        {% if lead.status == 'REPLIED' %}badge-success
+                        {% elif lead.status == 'OPENED' %}badge-info
+                        {% elif lead.status == 'BOUNCED' %}badge-danger
+                        {% elif lead.status == 'SENT' %}badge-primary
+                        {% elif lead.status == 'QUEUED' %}badge-warning
+                        {% else %}badge-secondary{% endif %}">
+                            {{ lead.status|default('UNKNOWN') }}
+                        </span>
+                    </dd>
+                </dl>
+            </div>
+            
+            <div class="col-md-6">
+                <h6>All Fields</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key, value in lead.items() %}
+                                <tr>
+                                    <td>{{ key }}</td>
+                                    <td>
+                                        {% if value is mapping %}
+                                            <em>Nested object</em>
+                                        {% elif value is iterable and value is not string %}
+                                            <em>Array</em>
+                                        {% else %}
+                                            {{ value }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Raw JSON Data</h5>
+    </div>
+    <div class="card-body">
+        <pre class="bg-light p-3">{{ lead|tojson(indent=2)|safe }}</pre>
+    </div>
+</div>
+{% endblock %}

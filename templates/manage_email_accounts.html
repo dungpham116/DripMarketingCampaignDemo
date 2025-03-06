@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Email Accounts - {{ campaign.name }} - Dripmail{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Manage Email Accounts</h1>
+    <div>
+        <a href="{{ url_for('view_campaign', campaign_id=campaign.id) }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Campaign
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Campaign: {{ campaign.name }}</h5>
+    </div>
+    <div class="card-body">
+        {% if campaign_account_ids %}
+        <div class="alert alert-info mb-3">
+            Currently selected accounts: {{ campaign_account_ids|join(', ') }}
+        </div>
+        {% endif %}
+        
+        <form method="post">
+            <div class="form-group">
+                <label>Select Email Accounts</label>
+                {% if all_email_accounts %}
+                <div class="list-group">
+                    {% for account in all_email_accounts %}
+                    <div class="list-group-item">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" 
+                                   id="account_{{ account.id }}" 
+                                   name="email_account_ids" 
+                                   value="{{ account.id }}"
+                                   {% if account.id in campaign_account_ids %}checked{% endif %}>
+                            <label class="custom-control-label" for="account_{{ account.id }}">
+                                {{ account.from_name }} &lt;{{ account.from_email }}&gt;
+                                <span class="badge {% if account.is_smtp_success and account.is_imap_success %}badge-success{% else %}badge-danger{% endif %} ml-2">
+                                    {{ account.daily_sent_count }}/{{ account.message_per_day }}
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    No email accounts found. <a href="{{ url_for('add_email_account') }}">Add an email account</a> first.
+                </div>
+                {% endif %}
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="{{ url_for('view_campaign', campaign_id=campaign.id) }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

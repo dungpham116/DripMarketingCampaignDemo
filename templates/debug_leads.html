@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Lead Data Debug - Dripmail{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Lead Data Debug</h1>
+    <div>
+        <a href="{{ url_for('view_campaign', campaign_id=campaign_id) }}" class="btn btn-secondary mr-2">
+            <i class="fas fa-arrow-left"></i> Back to Campaign
+        </a>
+        <button class="btn btn-info" onclick="window.location.reload();">
+            <i class="fas fa-sync"></i> Refresh Data
+        </button>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <p>Found {{ total_leads }} leads. This debug view shows the raw data structure from the API.</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-warning">
+        <h5 class="mb-0">Email and Name Extraction Tester</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-12">
+                <p>Showing first 5 leads with email extraction attempts:</p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Fields with '@'</th>
+                                <th>Extracted Email</th>
+                                <th>Extracted Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lead in leads[:5] %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <ul class="mb-0 pl-3">
+                                        {% for key, value in lead.items() %}
+                                            {% if value is string and '@' in value %}
+                                                <li><strong>{{ key }}</strong>: {{ value }}</li>
+                                            {% elif value is mapping %}
+                                                {% for nk, nv in value.items() %}
+                                                    {% if nv is string and '@' in nv %}
+                                                        <li><strong>{{ key }}.{{ nk }}</strong>: {{ nv }}</li>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        {% set extracted = namespace(email=false) %}
+                                        {% for key, value in lead.items() %}
+                                            {% if key == 'email' or key == 'emailAddress' or key == 'email_address' %}
+                                                {% if value %}
+                                                    <span class="badge badge-success">{{ key }}: {{ value }}</span>
+                                                    {% set extracted.email = true %}
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        {% if not extracted.email %}
+                                            <span class="badge badge-danger">Not found</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set extracted = namespace(name=false) %}
+                                        {% for key, value in lead.items() %}
+                                            {% if key == 'first_name' or key == 'firstName' or key == 'name' %}
+                                                {% if value %}
+                                                    <span class="badge badge-success">{{ key }}: {{ value }}</span>
+                                                    {% set extracted.name = true %}
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        {% if not extracted.name %}
+                                            <span class="badge badge-danger">Not found</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Lead Data Structure Analysis</h5>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <h6>Available Fields Analysis:</h6>
+            {% if field_stats %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Occurrence Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for field_name, count in field_stats.items()|sort(attribute='1', reverse=True) %}
+                            <tr>
+                                <td><code>{{ field_name }}</code></td>
+                                <td>{{ count }}</td>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar" role="progressbar" 
+                                             style="width: {{ (count / total_leads * 100)|round }}%;" 
+                                             aria-valuenow="{{ (count / total_leads * 100)|round }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ (count / total_leads * 100)|round }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">No field information available</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Sample Lead (Raw Data)</h5>
+    </div>
+    <div class="card-body">
+        {% if sample_lead %}
+            <div class="bg-light p-3 rounded">
+                <pre>{{ sample_lead|tojson(indent=2)|safe }}</pre>
+            </div>
+        {% else %}
+            <p class="text-muted">No sample lead available</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">All Leads (First 10)</h5>
+    </div>
+    <div class="card-body">
+        {% if leads %}
+            {% for lead in leads[:10] %}
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Lead #{{ loop.index }}:
+                    {% if lead.email %}
+                        <span class="text-primary">{{ lead.email }}</span>
+                    {% elif lead.contact and lead.contact.email %}
+                        <span class="text-primary">{{ lead.contact.email }}</span>
+                    {% else %}
+                        <span class="text-muted">No email found</span>
+                    {% endif %}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <pre>{{ lead|tojson(indent=2)|safe }}</pre>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted">No leads available</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Email Account - Dripmail{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Edit Email Account</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="account_type" value="{{ account.type }}">
+                    
+                    <div class="form-group">
+                        <label for="from_name">From Name</label>
+                        <input type="text" class="form-control" id="from_name" name="from_name" value="{{ account.from_name }}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="from_email">Email Address</label>
+                        <input type="email" class="form-control" id="from_email" name="from_email" value="{{ account.from_email }}" readonly>
+                        <small class="form-text text-muted">Email address cannot be changed</small>
+                    </div>
+                    
+                    <!-- SMTP Settings (shown only for SMTP accounts) -->
+                    {% if account.type == 'SMTP' %}
+                    <div id="smtp_settings">
+                        <div class="form-group">
+                            <label for="smtp_host">SMTP Host</label>
+                            <input type="text" class="form-control" id="smtp_host" name="smtp_host" value="{{ account.smtp_host }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="smtp_port">SMTP Port</label>
+                            <input type="number" class="form-control" id="smtp_port" name="smtp_port" value="{{ account.smtp_port }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="smtp_username">SMTP Username</label>
+                            <input type="text" class="form-control" id="smtp_username" name="username" value="{{ account.username }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="smtp_password">SMTP Password</label>
+                            <input type="password" class="form-control" id="smtp_password" name="password" placeholder="Leave blank to keep current password">
+                            <small class="form-text text-muted">Leave blank if you don't want to change the password</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="smtp_port_type">Encryption</label>
+                            <select class="form-control" id="smtp_port_type" name="smtp_port_type">
+                                <option value="SSL" {% if account.smtp_port_type == 'SSL' %}selected{% endif %}>SSL</option>
+                                <option value="TLS" {% if account.smtp_port_type == 'TLS' %}selected{% endif %}>TLS</option>
+                                <option value="NONE" {% if account.smtp_port_type == 'NONE' %}selected{% endif %}>None</option>
+                            </select>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="form-group">
+                        <label for="message_per_day">Message Limit Per Day</label>
+                        <input type="number" class="form-control" id="message_per_day" name="message_per_day" value="{{ account.message_per_day }}" min="1" max="1000" required>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="different_reply_to" name="different_reply_to" {% if account.different_reply_to_address %}checked{% endif %}>
+                        <label class="form-check-label" for="different_reply_to">Use different Reply-To address</label>
+                    </div>
+                    
+                    <div id="reply_to_field" class="form-group {% if not account.different_reply_to_address %}d-none{% endif %}">
+                        <label for="different_reply_to_address">Reply-To Email Address</label>
+                        <input type="email" class="form-control" id="different_reply_to_address" name="different_reply_to_address" value="{{ account.different_reply_to_address }}">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="{{ url_for('email_accounts') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Show/hide reply-to field
+        $('#different_reply_to').change(function() {
+            if($(this).is(':checked')) {
+                $('#reply_to_field').removeClass('d-none');
+            } else {
+                $('#reply_to_field').addClass('d-none');
+            }
+        });
+    });
+</script>
+{% endblock %}

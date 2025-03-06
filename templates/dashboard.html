@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Dripmail{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        transition: transform 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .chart-container {
+        position: relative;
+        height: 250px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Dashboard</h1>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase">Campaigns</h6>
+                        <h2 class="mb-0">{{ campaigns|length }}</h2>
+                    </div>
+                    <i class="fas fa-rocket fa-3x"></i>
+                </div>
+                <p class="mt-2 mb-0">
+                    <a href="{{ url_for('campaigns') }}" class="text-white">View all campaigns</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase">Total Leads</h6>
+                        <h2 class="mb-0" id="totalLeadsCount">{{ total_leads }}</h2>
+                    </div>
+                    <i class="fas fa-users fa-3x"></i>
+                </div>
+                <p class="mt-2 mb-0">
+                    Active across all campaigns
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase">Email Accounts</h6>
+                        <h2 class="mb-0">{{ email_accounts|length }}</h2>
+                    </div>
+                    <i class="fas fa-envelope fa-3x"></i>
+                </div>
+                <p class="mt-2 mb-0">
+                    <a href="{{ url_for('email_accounts') }}" class="text-white">Manage email accounts</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Campaign Status Chart -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Campaign Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="campaignStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lead Status Chart -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Campaign Performance</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="campaignPerformanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Recent Campaigns</h5>
+    </div>
+    <div class="card-body">
+        {% if campaigns %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Leads</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for campaign in campaigns[:5] %}
+                    <tr>
+                        <td>{{ campaign.name }}</td>
+                        <td>
+                            {% if campaign.status == 'STOPPED' %}
+                            <span class="badge badge-danger">Stopped</span>
+                            {% elif campaign.status == 'RUNNING' %}
+                            <span class="badge badge-success">Running</span>
+                            {% else %}
+                            <span class="badge badge-secondary">{{ campaign.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ campaign.created_at|date }}</td>
+                        <td>{{ campaign.lead_count }}</td>
+                        <td>
+                            <a href="{{ url_for('view_campaign', campaign_id=campaign.id) }}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p>No campaigns found. <a href="{{ url_for('create_campaign') }}">Create your first campaign</a>.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fix for Chart.js initialization - make sure the elements exist before accessing
+        const statusCtxElement = document.getElementById('campaignStatusChart');
+        const performanceCtxElement = document.getElementById('campaignPerformanceChart');
+        
+        if (!statusCtxElement || !performanceCtxElement) {
+            console.error('Chart container not found');
+            return;
+        }
+        
+        // Prepare data for Campaign Status Chart - handle possible JSON errors
+        let campaignData;
+        try {
+            campaignData = {{ campaigns|tojson|safe }};
+        } catch (e) {
+            console.error('Error parsing campaign data:', e);
+            campaignData = [];
+            return;
+        }
+        
+        // Count campaigns by status
+        const statusCounts = {
+            'RUNNING': 0,
+            'STOPPED': 0,
+            'OTHER': 0
+        };
+        
+        campaignData.forEach(campaign => {
+            if (campaign.status === 'RUNNING') statusCounts.RUNNING++;
+            else if (campaign.status === 'STOPPED') statusCounts.STOPPED++;
+            else statusCounts.OTHER++;
+        });
+        
+        // Campaign Status Chart
+        const statusCtx = statusCtxElement.getContext('2d');
+        new Chart(statusCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Running', 'Stopped', 'Other'],
+                datasets: [{
+                    data: [statusCounts.RUNNING, statusCounts.STOPPED, statusCounts.OTHER],
+                    backgroundColor: ['#28a745', '#dc3545', '#6c757d']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // Campaign Performance Chart
+        // Calculate total leads and engagement metrics
+        let totalLeads = 0;
+        let campaignPerformanceData = [];
+        
+        campaignData.forEach(campaign => {
+            totalLeads += campaign.lead_count || 0;
+            if (campaign.lead_count > 0) {
+                campaignPerformanceData.push({
+                    name: campaign.name,
+                    leads: campaign.lead_count
+                });
+            }
+        });
+        
+        // Sort by lead count and get top 5
+        campaignPerformanceData.sort((a, b) => b.leads - a.leads);
+        const topCampaigns = campaignPerformanceData.slice(0, 5);
+        
+        const performanceCtx = performanceCtxElement.getContext('2d');
+        new Chart(performanceCtx, {
+            type: 'bar',
+            data: {
+                labels: topCampaigns.map(c => c.name),
+                datasets: [{
+                    label: 'Leads',
+                    data: topCampaigns.map(c => c.leads),
+                    backgroundColor: '#17a2b8',
+                    borderColor: '#17a2b8',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Top Campaigns by Lead Count'
+                    }
+                }
+            }
+        });
+    });
+
+    // Function to refresh lead counts
+    function refreshLeadCounts() {
+        fetch('/api/lead-counts')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('totalLeadsCount').textContent = data.total_leads;
+                }
+            })
+            .catch(error => console.error('Error fetching lead counts:', error));
+    }
+    
+    // Refresh lead counts every 60 seconds
+    setInterval(refreshLeadCounts, 60000);
+</script>
+{% endblock %}
